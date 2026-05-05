@@ -1,19 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Client.hpp                                         :+:      :+:    :+:   */
+/*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/04 20:05:19 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/05 21:36:22 by zmin             ###   ########.fr       */
+/*   Created: 2026/05/05 21:32:58 by zmin              #+#    #+#             */
+/*   Updated: 2026/05/05 21:34:49 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+#ifndef CHANNEL_HPP
+#define CHANNEL_HPP
 
-class Client {
+class Channel {
 	
 };
 
