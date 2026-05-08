@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:19 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/07 12:00:00 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/08 19:21:42 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,8 +97,6 @@ private:
 	std::string             _outBuffer;
 
 	bool                    _hasPass;
-	bool                    _hasNick;
-	bool                    _hasUser;
 	bool                    _registered;
 
 	std::vector<Channel*>   _channels;
