@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:23 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:09:29 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/11 21:52:50 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 		std::cout << "Starting ircserv on port " << port << "..." << std::endl;
 
 		// This will block and run the infinite poll() loop
-		// ircServer.run();
+		ircServer.run();
 	}
 	catch (const std::exception &e)
 	{

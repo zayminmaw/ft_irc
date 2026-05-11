@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 20:57:24 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/11 22:07:06 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,15 @@
 #include "Client.hpp"
 #include "Channel.hpp"
 #include <cctype>
+#include <iostream>
+#include <sys/socket.h> // for socket(), bind(), listen()
+#include <netinet/in.h> // for struct sockaddr_in and htons()
+#include <fcntl.h>		// for fcntl() and O_NONBLOCK
+#include <stdexcept>	// for std::runtime_error
+#include <cstring>		// for std::memset
+#include <unistd.h>		// for close()
+#include <csignal>		// for signal()
+#include <errno.h>
 
 static std::string toLower(std::string str)
 {
@@ -103,5 +112,85 @@ void Server::removeChannelIfEmpty(const std::string &name)
 			delete channel;
 			_channels.erase(it);
 		}
+	}
+}
+
+void Server::requestShutdown(int signum)
+{
+	(void)signum;
+
+	_shutdownRequested = true;
+
+	std::cout << "\n\r[Server] Shutdown signal received. Closing gracefully..." << std::endl;
+}
+
+void Server::setupListenSocket()
+{
+	// create socket
+	// AF_INET = IPv4, SOCK_STREAM = TCP protocol
+	_serverFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_serverFd < 0)
+	{
+		throw std::runtime_error("Failed to create server socket.");
+	}
+
+	// set SO_REUSEADDR (ghost port fix)
+	int opt = 1;
+	if (setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+	{
+		close(_serverFd);
+		throw std::runtime_error("Failed to set SO_REUSEADDR.");
+	}
+
+	// set O_NONBLOCK
+	if (fcntl(_serverFd, F_SETFL, O_NONBLOCK) < 0)
+	{
+		close(_serverFd);
+		throw std::runtime_error("Failed to set socket to non-blocking.");
+	}
+
+	// bind the socket to the port
+	struct sockaddr_in serv_addr;
+	std::memset(&serv_addr, 0, sizeof(serv_addr)); // zero out the struct
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY; // liston all network interfaces (127.0.0.1, LAN IP...)
+	serv_addr.sin_port = htons(_port);		// Host TO Network Short - flips the bytes
+	// PC reads memory backwards (Little ENdian). internet reads memory forwards (big Endian)
+
+	if (bind(_serverFd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+	{
+		close(_serverFd);
+		// throw std::runtime_error("Port is already in use (bind failed).");
+		throw std::runtime_error(std::string("Bind failed: ") + strerror(errno));
+	}
+
+	// SOMAXCOON to queue as many pending connections as it can
+	if (listen(_serverFd, SOMAXCONN) < 0)
+	{
+		close(_serverFd);
+		throw std::runtime_error("Failed to start listening on socket.");
+	}
+}
+
+void Server::run()
+{
+
+	signal(SIGINT, Server::requestShutdown); // handle Ctrl+C
+	signal(SIGPIPE, SIG_IGN);				 // ignore broken pipes to prevent crashes
+
+	//
+	setupListenSocket();
+	std::cout << "[Server] Listening on port " << _port << " (Non-Blocking)" << std::endl;
+
+	//
+	while (!_shutdownRequested)
+	{
+		usleep(100000);
+	}
+
+	if (_serverFd >= 0)
+	{
+		close(_serverFd);
+		std::cout << "[Server] Server socket closed." << std::endl;
 	}
 }
