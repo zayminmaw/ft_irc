@@ -6,60 +6,68 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:23 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/08 19:38:59 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/11 21:09:29 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "Server.hpp"
 #include <iostream>
+#include <cstdlib> // For std::atoi
+#include <stdexcept>
 
-int main(void)
+// Helper to check if a string is strictly numeric
+static bool isNumeric(const std::string &str)
 {
-	std::cout << "Hello world";
+	if (str.empty())
+		return false;
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if (!isdigit(str[i]))
+			return false;
+	}
+	return true;
 }
 
-// #include "Client.hpp"
-// #include <iostream>
+int main(int argc, char **argv)
+{
+	if (argc != 3)
+	{
+		std::cerr << "Usage: ./ircserv <port> <password>" << std::endl;
+		return 1;
+	}
 
-// int main() {
-//     std::cout << "--- Starting Client Phase 1 Test ---\n" << std::endl;
+	std::string portStr = argv[1];
+	std::string password = argv[2];
 
-//     // incoming connection on FD 4
-//     Client testClient(4, "192.168.1.100");
+	// Port Validation (Must be a number between 1 and 65535)
+	if (!isNumeric(portStr))
+	{
+		std::cerr << "Error: Port must be a numeric value." << std::endl;
+		return 1;
+	}
 
-//     // Test Getters
-//     std::cout << "Initial FD: " << testClient.getFd() << std::endl;
-//     std::cout << "Initial IP: " << testClient.getIp() << std::endl;
+	int port = std::atoi(portStr.c_str());
+	if (port < 1 || port > 65535)
+	{
+		std::cerr << "Error: Port must be between 1 and 65535." << std::endl;
+		return 1;
+	}
 
-//     // Test Registration State (Should be false initially)
-//     std::cout << "\n--- Testing Initial State ---" << std::endl;
-//     std::cout << "Has Nick? " << (testClient.hasNick() ? "Yes" : "No") << std::endl;
-//     std::cout << "Has User? " << (testClient.hasUser() ? "Yes" : "No") << std::endl;
-//     std::cout << "Is Registered? " << (testClient.isRegistered() ? "Yes" : "No") << std::endl;
+	// Server Instantiation & Execution
+	try
+	{
+		Server ircServer(port, password);
 
-//     // Set Data (Simulating a user sending NICK and USER commands)
-//     std::cout << "\n--- Setting Nick and User ---" << std::endl;
-//     testClient.setNick("the_hacker");
-//     testClient.setUser("hacker_dude");
-//     testClient.markPass();
-//     testClient.markRegistered();
+		std::cout << "Starting ircserv on port " << port << "..." << std::endl;
 
-//     // Verify New State
-//     std::cout << "New Nick: " << testClient.getNick() << std::endl;
-//     std::cout << "New User: " << testClient.getUser() << std::endl;
-//     std::cout << "Has Pass? " << (testClient.hasPass() ? "Yes" : "No") << std::endl;
-//     std::cout << "Is Registered? " << (testClient.isRegistered() ? "Yes" : "No") << std::endl;
+		// This will block and run the infinite poll() loop
+		// ircServer.run();
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "Fatal Error: " << e.what() << std::endl;
+		return 1;
+	}
 
-//     // Test the crucial Prefix Formatter
-//     std::cout << "\n--- Testing Prefix Formatter ---" << std::endl;
-//     std::cout << "Generated Prefix: " << testClient.getPrefix() << std::endl;
-    
-//     // Expected Output: the_hacker!hacker_dude@192.168.1.100
-//     if (testClient.getPrefix() == "the_hacker!hacker_dude@192.168.1.100") {
-//         std::cout << "✅ Prefix format is CORRECT!" << std::endl;
-//     } else {
-//         std::cout << "❌ Prefix format is INCORRECT!" << std::endl;
-//     }
-
-//     std::cout << "\n--- Test Complete ---" << std::endl;
-//     return 0;
-// }
+	return 0;
+}
