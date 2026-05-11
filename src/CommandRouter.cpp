@@ -3,16 +3,12 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:33:53 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/12 02:24:40 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-// PHASE 0 STUB. Person B replaces this whole file in their Phase 1-3.
-// Do not add logic here -- leave it empty so the build stays green until B
-// drops in the real router.
 
 #include "CommandRouter.hpp"
 #include "Reply.hpp"
@@ -113,11 +109,80 @@ bool CommandRouter::_ensureRegistered(Client& c) {
 	return false;
 }
 
-// --- STUBS FOR PHASE 3 ---
+void CommandRouter::tryRegister(Client& c) { 
+	if (c.isRegistered())
+		return;
+	if (!_server.getPassword().empty() && !c.hasPass())
+		return;
+	if (!c.hasNick() || !c.hasUser())
+		return;
+	c.markRegistered();
+	c.send(Reply::welcome(_server.getName(), c.getNick()));
+    c.send(Reply::yourHost(_server.getName(), c.getNick()));
+    c.send(Reply::created(_server.getName(), c.getNick()));
+    c.send(Reply::myInfo(_server.getName(), c.getNick()));
+}
 
-void CommandRouter::handlePass(Client& c, const IRCMessage& m) { (void)c; (void)m; }
-void CommandRouter::handleNick(Client& c, const IRCMessage& m) { (void)c; (void)m; }
-void CommandRouter::handleUser(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handlePass(Client& c, const IRCMessage& m) { 
+	if (c.isRegistered()) {
+		c.send(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
+		return;
+	}
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	if (m.params[0] != _server.getPassword()) {
+		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		return;
+	}
+	c.markPass();
+}
+ 
+void CommandRouter::handleNick(Client& c, const IRCMessage& m) { 
+	if (m.params.empty()) {
+		c.send(Reply::errNoNicknameGiven(_server.getName(), c.getNick()));
+		return;
+	}
+	if (!_server.getPassword().empty() && !c.hasPass()) {
+		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		return;
+	}
+	std::string newNick = m.params[0];
+	if (newNick.find_first_of(" ,*?!@.") != std::string::npos) {
+		c.send(Reply::errErroneousNick(_server.getName(), c.getNick(), newNick));
+		return;
+	}
+	Client* existing = _server.findClientByNick(newNick);
+	if (existing && existing != &c) {
+		c.send(Reply::errNickInUse(_server.getName(), c.getNick(), newNick));
+		return;
+	}
+	if (c.isRegistered()) {
+		c.setNick(newNick);
+	} else {
+		c.setNick(newNick);
+		tryRegister(c);
+	}
+}
+
+void CommandRouter::handleUser(Client& c, const IRCMessage& m) { 
+	if (c.isRegistered()) {
+		c.send(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
+		return;
+	}
+	if (m.params.size() < 4) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	if (!_server.getPassword().empty() && !c.hasPass()) {
+		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		return;
+	}
+	c.setUser(m.params[0]);
+	tryRegister(c);
+}
+
 void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
     (void)m;
     c.send(":" + _server.getName() + " CAP * LS :");
@@ -134,4 +199,4 @@ void CommandRouter::handleNotice(Client& c, const IRCMessage& m) { if (!_ensureR
 
 void CommandRouter::handlePing(Client& c, const IRCMessage& m) { (void)c; (void)m; }
 void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
-void CommandRouter::tryRegister(Client& c) { (void)c; }
+

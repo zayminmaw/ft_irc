@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:32:29 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/12 02:24:59 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,11 +25,11 @@ std::string Reply::yourHost(const std::string& serverName, const std::string& ni
 }
 
 std::string Reply::created(const std::string& serverName, const std::string& nick) {
-	return _fmt(serverName, "002", nick) + ":This server was created " + "May 2026";
+	return _fmt(serverName, "003", nick) + ":This server was created " + "May 2026";
 }
 
 std::string Reply::myInfo(const std::string& serverName, const std::string& nick) {
-	return _fmt(serverName, "002", nick) + serverName + " 1.0 " + "<usermodes> <chanmodes>";
+	return _fmt(serverName, "004", nick) + serverName + " 1.0 " + "<usermodes> <chanmodes>";
 }
 
 std::string Reply::topic(const std::string& serverName, const std::string& nick, const std::string& chan, const std::string& topic) {
