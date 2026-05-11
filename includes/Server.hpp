@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:21 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 20:57:52 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/11 21:20:28 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ public:
 	void               run();
 
 	// Signal handler entry point. Sets an internal flag that breaks run().
-	static void        requestShutdown();
+	static void        requestShutdown(int signum);
 
 	// ---- registry lookup (used by CommandRouter) -------------------------
 	Client*            findClientByNick(const std::string& nick);
