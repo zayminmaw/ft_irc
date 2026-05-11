@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 20:54:00 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:14:10 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,7 @@ class CommandRouter
 		void                        handlePass(Client&, const IRCMessage&);
 		void                        handleNick(Client&, const IRCMessage&);
 		void                        handleUser(Client&, const IRCMessage&);
+		void                        handleCap(Client&, const IRCMessage&);
 
 		// Called after any of PASS/NICK/USER changes state; if all three are
 		// satisfied and the client isn't yet registered, sends 001 welcome.

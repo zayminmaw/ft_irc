@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 20:58:33 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:14:20 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,4 +70,21 @@ IRCMessage CommandRouter::tokenize(const std::string& line)
 		msg.params.push_back(trailing);
 		
 	return msg;
+}
+
+void CommandRouter::registerHandlers() {
+	_handlers["PASS"] = &CommandRouter::handlePass;
+	_handlers["NICK"] = &CommandRouter::handleNick;
+	_handlers["USER"] = &CommandRouter::handleUser;
+	_handlers["CAP"] = &CommandRouter::handleCap;
+	_handlers["JOIN"] = &CommandRouter::handleJoin;
+	_handlers["PART"] = &CommandRouter::handlePart;
+	_handlers["TOPIC"] = &CommandRouter::handleTopic;
+	_handlers["MODE"] = &CommandRouter::handleMode;
+	_handlers["KICK"] = &CommandRouter::handleKick;
+	_handlers["INVITE"] = &CommandRouter::handleInvite;
+	_handlers["PRIVMSG"] = &CommandRouter::handlePrivmsg;
+	_handlers["NOTICE"] = &CommandRouter::handleNotice;
+	_handlers["PING"] = &CommandRouter::handlePing;
+	_handlers["QUIT"] = &CommandRouter::handleQuit;
 }
