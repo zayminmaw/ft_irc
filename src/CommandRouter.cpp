@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:14:20 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:33:27 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,18 +15,34 @@
 // drops in the real router.
 
 #include "CommandRouter.hpp"
+#include "Reply.hpp"
+#include "Client.hpp"
+#include "Server.hpp"
 
 CommandRouter::CommandRouter(Server& server)
 	: _server(server)
 {
+	registerHandlers();
 }
 
 CommandRouter::~CommandRouter()
 {
 }
 
-void CommandRouter::dispatch(Client&, const std::string&)
+void CommandRouter::dispatch(Client& c, const std::string& line)
 {
+	IRCMessage msg = tokenize(line);
+
+	if (msg.command.empty())
+		return;
+
+	std::map<std::string, Handler>::iterator it = _handlers.find(msg.command);
+
+	if (it != _handlers.end()) {
+		(this->*(it->second))(c, msg);
+	} else {
+		c.send(Reply::errUnknownCommand(_server.getName(), c.getNick(), msg.command));
+	}
 }
 
 IRCMessage CommandRouter::tokenize(const std::string& line)
@@ -88,3 +104,12 @@ void CommandRouter::registerHandlers() {
 	_handlers["PING"] = &CommandRouter::handlePing;
 	_handlers["QUIT"] = &CommandRouter::handleQuit;
 }
+
+bool CommandRouter::_ensureRegistered(Client& c) {
+	if (c.isRegistered()) {
+		return true;
+	}
+	c.send(Reply::errNotRegistered(_server.getName(), c.getNick()));
+	return false;
+}
+

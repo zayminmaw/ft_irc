@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/08 19:18:48 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:32:46 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,7 @@ namespace Reply
 	                               const std::string& chan);                                // 442
 	std::string errUserOnChannel  (const std::string& serverName, const std::string& nick,
 	                               const std::string& target, const std::string& chan);    // 443
-	std::string errNotRegistered  (const std::string& serverName);                          // 451
+	std::string errNotRegistered  (const std::string& serverName, const std::string& nick);  // 451
 	std::string errNeedMoreParams (const std::string& serverName, const std::string& nick,
 	                               const std::string& cmd);                                 // 461
 	std::string errAlreadyRegistered(const std::string& serverName, const std::string& nick);// 462

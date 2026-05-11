@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:14:10 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:29:46 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,7 @@ class CommandRouter
 		typedef void (CommandRouter::*Handler)(Client&, const IRCMessage&);
 
 		void                        registerHandlers();
+		bool						_ensureRegistered(Client&);
 
 		// ---- registration ----------------------------------------------------
 		void                        handlePass(Client&, const IRCMessage&);

@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 19:25:52 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:32:29 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,8 +96,9 @@ std::string Reply::errUserOnChannel(const std::string& serverName, const std::st
 	return _fmt(serverName, "443", nick) + target + " " + chan + " :is already on channel";
 }
 
-std::string Reply::errNotRegistered(const std::string& serverName) {
-	return _fmt(serverName, "451", "") + ":You have not registered";
+std::string Reply::errNotRegistered(const std::string& serverName, const std::string& nick) {
+	std::string target = nick.empty() ? "*" : nick;
+	return _fmt(serverName, "451", target) + ":You have not registered";
 }
 
 std::string Reply::errNeedMoreParams(const std::string& serverName, const std::string& nick, const std::string& cmd) {
