@@ -6,13 +6,14 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/07 12:00:00 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 20:54:00 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef COMMAND_ROUTER_HPP
 # define COMMAND_ROUTER_HPP
 
+# include <sstream>
 # include <string>
 # include <vector>
 # include <map>
@@ -50,53 +51,53 @@ struct IRCMessage
  */
 class CommandRouter
 {
-public:
-	explicit CommandRouter(Server& server);
-	~CommandRouter();
+	public:
+		explicit CommandRouter(Server& server);
+		~CommandRouter();
 
-	// THE seam between network and protocol.
-	// `line` is guaranteed: no \r\n, length <= 510, may be empty (router will
-	// silently drop empty lines per RFC).
-	void                        dispatch(Client& client, const std::string& line);
+		// THE seam between network and protocol.
+		// `line` is guaranteed: no \r\n, length <= 510, may be empty (router will
+		// silently drop empty lines per RFC).
+		void                        dispatch(Client& client, const std::string& line);
 
-	// Exposed for testing the tokenizer in isolation.
-	static IRCMessage           tokenize(const std::string& line);
+		// Exposed for testing the tokenizer in isolation.
+		static IRCMessage           tokenize(const std::string& line);
 
-private:
-	CommandRouter(const CommandRouter&);
-	CommandRouter& operator=(const CommandRouter&);
+	private:
+		CommandRouter(const CommandRouter&);
+		CommandRouter& operator=(const CommandRouter&);
 
-	typedef void (CommandRouter::*Handler)(Client&, const IRCMessage&);
+		typedef void (CommandRouter::*Handler)(Client&, const IRCMessage&);
 
-	void                        registerHandlers();
+		void                        registerHandlers();
 
-	// ---- registration ----------------------------------------------------
-	void                        handlePass(Client&, const IRCMessage&);
-	void                        handleNick(Client&, const IRCMessage&);
-	void                        handleUser(Client&, const IRCMessage&);
+		// ---- registration ----------------------------------------------------
+		void                        handlePass(Client&, const IRCMessage&);
+		void                        handleNick(Client&, const IRCMessage&);
+		void                        handleUser(Client&, const IRCMessage&);
 
-	// Called after any of PASS/NICK/USER changes state; if all three are
-	// satisfied and the client isn't yet registered, sends 001 welcome.
-	void                        tryRegister(Client&);
+		// Called after any of PASS/NICK/USER changes state; if all three are
+		// satisfied and the client isn't yet registered, sends 001 welcome.
+		void                        tryRegister(Client&);
 
-	// ---- channel ops -----------------------------------------------------
-	void                        handleJoin(Client&, const IRCMessage&);
-	void                        handlePart(Client&, const IRCMessage&);
-	void                        handleTopic(Client&, const IRCMessage&);
-	void                        handleMode(Client&, const IRCMessage&);
-	void                        handleKick(Client&, const IRCMessage&);
-	void                        handleInvite(Client&, const IRCMessage&);
+		// ---- channel ops -----------------------------------------------------
+		void                        handleJoin(Client&, const IRCMessage&);
+		void                        handlePart(Client&, const IRCMessage&);
+		void                        handleTopic(Client&, const IRCMessage&);
+		void                        handleMode(Client&, const IRCMessage&);
+		void                        handleKick(Client&, const IRCMessage&);
+		void                        handleInvite(Client&, const IRCMessage&);
 
-	// ---- messaging -------------------------------------------------------
-	void                        handlePrivmsg(Client&, const IRCMessage&);
-	void                        handleNotice(Client&, const IRCMessage&);
+		// ---- messaging -------------------------------------------------------
+		void                        handlePrivmsg(Client&, const IRCMessage&);
+		void                        handleNotice(Client&, const IRCMessage&);
 
-	// ---- session ---------------------------------------------------------
-	void                        handlePing(Client&, const IRCMessage&);
-	void                        handleQuit(Client&, const IRCMessage&);
+		// ---- session ---------------------------------------------------------
+		void                        handlePing(Client&, const IRCMessage&);
+		void                        handleQuit(Client&, const IRCMessage&);
 
-	Server&                     _server;
-	std::map<std::string, Handler> _handlers;
+		Server&                     _server;
+		std::map<std::string, Handler> _handlers;
 };
 
 #endif
