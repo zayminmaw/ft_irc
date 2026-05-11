@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:33:27 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 21:33:53 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,3 +113,25 @@ bool CommandRouter::_ensureRegistered(Client& c) {
 	return false;
 }
 
+// --- STUBS FOR PHASE 3 ---
+
+void CommandRouter::handlePass(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handleNick(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handleUser(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
+    (void)m;
+    c.send(":" + _server.getName() + " CAP * LS :");
+}
+
+void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handlePart(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleNotice(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+
+void CommandRouter::handlePing(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::tryRegister(Client& c) { (void)c; }
