@@ -7,12 +7,7 @@ CFLAGS		=	-Wall -Werror -Wextra -I./includes -std=c++98
 SRCS_DIR	=	src/
 OBJS_DIR	=	obj/
 
-SRC_FILES	=	main \
-				Server \
-				Client \
-				Channel \
-				CommandRouter \
-				Reply
+SRC_FILES	=	main Server Client Channel CommandRouter Reply
 
 SRCS		=	$(addprefix $(SRCS_DIR), $(addsuffix .cpp, $(SRC_FILES)))
 OBJS		=	$(addprefix $(OBJS_DIR), $(addsuffix .o, $(SRC_FILES)))
