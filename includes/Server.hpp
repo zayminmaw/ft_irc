@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:21 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/07 12:00:00 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/11 20:57:52 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <vector>
 # include <map>
 # include <poll.h>
+# include "CommandRouter.hpp"
 
 class Client;
 class Channel;
