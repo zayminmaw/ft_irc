@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 22:07:06 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/12 19:46:27 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <unistd.h>		// for close()
 #include <csignal>		// for signal()
 #include <errno.h>
+#include <arpa/inet.h> // For inet_ntoa
 
 static std::string toLower(std::string str)
 {
@@ -121,7 +122,7 @@ void Server::requestShutdown(int signum)
 
 	_shutdownRequested = true;
 
-	std::cout << "\n\r[Server] Shutdown signal received. Closing gracefully..." << std::endl;
+	std::cout << "\n\r[Server] Shutdown signal received." << std::endl;
 }
 
 void Server::setupListenSocket()
@@ -182,15 +183,100 @@ void Server::run()
 	setupListenSocket();
 	std::cout << "[Server] Listening on port " << _port << " (Non-Blocking)" << std::endl;
 
-	//
+	// init the poll list with master server socket at index 0
+	struct pollfd server_pfd;
+	server_pfd.fd = _serverFd;
+	server_pfd.events = POLL_IN;
+	server_pfd.revents = 0;
+	_pollFds.push_back(server_pfd);
+
+	// event loop
 	while (!_shutdownRequested)
 	{
-		usleep(100000);
+		// put the program to sleep until a socket wake it up
+		// '-1' to wait forever without timing out
+		int poll_count = poll(&_pollFds[0], _pollFds.size(), -1);
+
+		if (poll_count < 0)
+		{
+			// if Ctrl+C was pressed, poll() will return -1 with EINTR;
+			// while loop already caught it for that
+			if (!_shutdownRequested)
+			{
+				std::cerr << "Error in poll()" << std::endl;
+			}
+			break;
+		}
+
+		// should not happen with -1 timeout
+		// but safe to have
+		if (poll_count == 0)
+			continue;
+
+		// check the bouncer/server
+		// to check new connections
+		if (_pollFds[0].revents & POLLIN)
+		{
+			acceptNewClient();
+		}
+
+		// check client chat messages
 	}
+
+	// cleanup after ctrl+c
+	std::cout << "[Server] Shutting down" << std::endl;
+
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		close(it->second->getFd());
+		delete it->second;
+	}
+	_clients.clear();
 
 	if (_serverFd >= 0)
 	{
 		close(_serverFd);
 		std::cout << "[Server] Server socket closed." << std::endl;
 	}
+}
+
+// client
+void Server::acceptNewClient()
+{
+	struct sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+
+	// accept connection
+	int client_fd = accept(_serverFd, (struct sockaddr *)&client_addr, &client_len);
+
+	if (client_fd < 0)
+	{
+		// socket is not-blocking and accept might fail if the user disconnected
+		// before we could accept. do let's ignore it
+		return;
+	}
+
+	//!! Make new client non-blocking
+	if (fcntl(client_fd, F_SETFL, O_NONBLOCK) < 0)
+	{
+		std::cerr << "Failed to set client socket to non-blocking." << std::endl;
+		close(client_fd);
+		return;
+	}
+
+	// extract ip adress
+	std::string ip = inet_ntoa(client_addr.sin_addr);
+
+	// create new client object
+	Client *new_client = new Client(client_fd, ip);
+	_clients[client_fd] = new_client;
+
+	// add client to the poll tracking list
+	struct pollfd pfd;
+	pfd.fd = client_fd;
+	pfd.events = POLL_IN;
+	pfd.revents = 0;
+	_pollFds.push_back(pfd);
+
+	std::cout << "[Server] Accepted new connection from " << ip << " on FD " << client_fd << std::endl;
 }
