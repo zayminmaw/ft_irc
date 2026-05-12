@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 20:25:21 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/12 21:28:29 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -225,7 +225,22 @@ void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) {
 	}
 }
 
-void CommandRouter::handleNotice(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleNotice(Client& c, const IRCMessage& m) { 
+	if (!c.isRegistered() || m.params.size() < 2) return;
+
+	std::string text = m.params[1];
+	std::stringstream ss(m.params[0]);
+	std::string target;
+	while (std::getline(ss, target, ',')) {
+        if (target[0] == '#' || target[0] == '&') {
+            Channel* ch = _server.findChannel(target);
+            if (ch) ch->broadcast(Reply::noticeMsg(c.getPrefix(), target, text), &c);
+        } else {
+            Client* targetClient = _server.findClientByNick(target);
+            if (targetClient) targetClient->send(Reply::noticeMsg(c.getPrefix(), target, text));
+        }
+    }
+}
 
 void CommandRouter::handlePing(Client& c, const IRCMessage& m) { (void)c; (void)m; }
 void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
