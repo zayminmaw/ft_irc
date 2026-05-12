@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:19 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:25:22 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/12 20:09:43 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,7 +71,7 @@ class Client
 		// ---- outbound buffer -------------------------------------------------
 		// Queues a message for sending. Appends \r\n if not already present.
 		// Actual write happens in the poll loop's POLLOUT branch.
-		void               send(const std::string& msg);
+		void               queueOutbound(const std::string& msg);
 
 		// Server-side: drain queued bytes into the socket. Returns false on fatal
 		// send error (EPIPE, ECONNRESET, etc.) so Server can disconnect.

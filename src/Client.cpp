@@ -6,15 +6,18 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/08 19:36:03 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/12 20:33:32 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.hpp"
 #include "algorithm"
+#include <sys/socket.h> // For send()
+#include <cerrno>		// For errno EAGAIN, EWOULDBLOCK
+#include <iostream>
 
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
-	_hasPass(false), _registered(false)
+												_hasPass(false), _registered(false)
 {
 }
 
@@ -99,7 +102,7 @@ void Client::joinChannel(Channel *channel)
 void Client::leaveChannel(Channel *channel)
 {
 	_channels.erase(std::remove(_channels.begin(), _channels.end(), channel),
-		_channels.end());
+					_channels.end());
 }
 
 const std::vector<Channel *> &Client::getChannels() const
@@ -107,30 +110,89 @@ const std::vector<Channel *> &Client::getChannels() const
 	return (_channels);
 }
 
-// BUFFER
+// INBOUND BUFFER
 void Client::appendToBuffer(const char *data, size_t len)
 {
-	(void)data;
-	(void)len;
+	// append() because += will stop at the first null byte it see
+	// append() for every single raw byte from recv()
+	//! Protect server from null-byte injection attack
+	_inBuffer.append(data, len);
 }
+
 bool Client::extractLine(std::string &out)
 {
-	(void)out;
-	return (false);
+	size_t pos = _inBuffer.find("\r\n");
+
+	// if no full line exist yet, return false to wait for more data
+	if (pos == std::string::npos)
+	{
+		return false;
+	}
+
+	// extract the command (exculde \r\n) into out-parameter
+	out = _inBuffer.substr(0, pos);
+
+	// erase the command and 2 bytes for \r\n from the front
+	_inBuffer.erase(0, pos + 2);
+
+	return true;
 }
+
 bool Client::isInboundOverflow() const
 {
-	return (false);
+	// Anti-DDoS limit
+	// if this is true server must drop the client
+	// reason: "Excess flood"
+	return _inBuffer.length() > 8192;
 }
-void Client::send(const std::string &msg)
+
+// OUTBOUND BUFFER
+void Client::queueOutbound(const std::string &msg)
 {
-	(void)msg;
+	_outBuffer += msg;
+
+	// check if the message already ends with \r\n
+	// if not, append it sefely
+	size_t len = _outBuffer.length();
+	if (len < 2 || _outBuffer.substr(len - 2) != "\r\n")
+	{
+		_outBuffer += "\r\n";
+	}
 }
 bool Client::flushOutbound()
 {
-	return (true);
+	if (_outBuffer.empty())
+	{
+		return true;
+	}
+
+	int bytes_send = send(_fd, _outBuffer.c_str(), _outBuffer.length(), 0);
+
+	if (bytes_send > 0)
+	{
+		// remove the bytes that got through
+		_outBuffer.erase(0, bytes_send);
+		return true;
+	}
+	else if (bytes_send == -1)
+	{
+		// sice socket is O_NONBLOCk, send() returning -1 isn't always a crash
+		// EWOULDBLOC or EAGAIN means Kernel's network buffer full right now
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			return true; // not fatal error, try again with next POLLOUT
+		}
+		//  if it's other error
+		// like EPIPE from a disconnected user
+		// its' fatal
+		return false;
+	}
+	// bytes_send == 0 means the connection was closed by peer
+	return false;
 }
+
 bool Client::hasPendingOutbound() const
 {
-	return (false);
+	return !_outBuffer.empty();
 }
+ 
