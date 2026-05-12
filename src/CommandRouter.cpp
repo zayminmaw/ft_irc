@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 02:24:40 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/05/12 20:25:21 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "Reply.hpp"
 #include "Client.hpp"
 #include "Server.hpp"
+#include "Channel.hpp"
 
 CommandRouter::CommandRouter(Server& server)
 	: _server(server)
@@ -194,7 +195,36 @@ void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRe
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
-void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+
+void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.send(Reply::errNoRecipient(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	if (m.params.size() < 2) {
+		c.send(Reply::errNoTextToSend(_server.getName(), c.getNick()));
+	}
+	std::string text = m.params[1];
+	std::stringstream ss(m.params[0]);
+	std::string target;
+	while (std::getline(ss,target, ',')) {
+		if (target[0] == '#' || target[0] == '&') {
+			Channel* ch = _server.findChannel(target);
+			if (!ch)
+				c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), target));
+			else 
+				ch->broadcast(Reply::privmsgMsg(c.getPrefix(), target, text), &c);
+		} else {
+			Client* targetClient = _server.findClientByNick(target);
+			if (!targetClient)
+				c.send(Reply::errNoSuchNick(_server.getName(), c.getNick(), target));
+			else
+				targetClient->send(Reply::privmsgMsg(c.getPrefix(), target, text));
+		}
+	}
+}
+
 void CommandRouter::handleNotice(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 
 void CommandRouter::handlePing(Client& c, const IRCMessage& m) { (void)c; (void)m; }
