@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 21:28:29 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/12 21:30:13 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -242,6 +242,13 @@ void CommandRouter::handleNotice(Client& c, const IRCMessage& m) {
     }
 }
 
-void CommandRouter::handlePing(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handlePing(Client& c, const IRCMessage& m) { 
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	c.send(":" + _server.getName() + " PONG " + _server.getName() + " :" + m.params[0]);
+}
+
 void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
 
