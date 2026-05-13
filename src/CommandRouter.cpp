@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 22:31:02 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 22:32:24 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -211,7 +211,7 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 	std::stringstream ss(m.params[0]);
 	std::string chanName;
 	while (std::getline(ss, chanName, ',')) {
-		if (chanName.empty() || (chanName[0] != '#' && chanName[0] != '$')) {
+		if (chanName.empty() || (chanName[0] != '#' && chanName[0] != '&')) {
 			c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
 			continue;
 		}
@@ -263,7 +263,43 @@ void CommandRouter::handlePart(Client& c, const IRCMessage& m) {
 	}
 }
 
-void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::string chanName = m.params[0];
+	Channel* ch = _server.findChannel(chanName);
+	if (!ch) {
+		c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+		return;
+	} 
+	if (!ch->hasMember(&c)) {
+		c.queueOutbound(Reply::errNotOnChannel(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+	
+	// 1. Query topic (1 param)
+	if (m.params.size() == 1) {
+		if (!ch->getTopic().empty())
+			c.queueOutbound(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
+		else
+			c.queueOutbound(Reply::noTopic(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+
+	// 2. Set Topic (2+ params)
+	// Check if +t is set and user is not op
+	if (ch->isTopicLocked() && !ch->isOperator(&c)) {
+		c.queueOutbound(Reply::errChanOPrivsNeeded(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+	std::string newTopic = m.params[1];
+	ch->setTopic(newTopic);
+	ch->broadcast(Reply::topicMsg(c.getPrefix(), chanName, newTopic), NULL);
+}
+
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
