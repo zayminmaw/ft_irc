@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:21:26 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:32:45 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -247,9 +247,21 @@ void CommandRouter::handlePart(Client& c, const IRCMessage& m) {
 	std::stringstream ss(m.params[0]);
 	std::string chanName;
 	while (std::getline(ss, chanName, ',')) {
-		
+		Channel* ch = _server.findChannel(chanName);
+		if (!ch) {
+			c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+			continue;
+		} 
+		if (!ch->hasMember(&c)) {
+			c.send(Reply::errNotOnChannel(_server.getName(), c.getNick(), chanName));
+			continue;
+		}
+		ch->broadcast(Reply::partMsg(c.getPrefix(), chanName, reason), NULL);
+		ch->removeMember(&c);
+		_server.removeChannelIfEmpty(chanName);
 	}
 }
+
 void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
