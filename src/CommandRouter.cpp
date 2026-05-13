@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:16:34 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:21:26 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,7 +237,19 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 	}
 }
 
-void CommandRouter::handlePart(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handlePart(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::string reason = (m.params.size() > 1) ? m.params[1] : c.getNick();
+	std::stringstream ss(m.params[0]);
+	std::string chanName;
+	while (std::getline(ss, chanName, ',')) {
+		
+	}
+}
 void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
