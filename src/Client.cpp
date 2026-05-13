@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 18:49:33 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 20:18:15 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,4 +194,11 @@ bool Client::flushOutbound()
 bool Client::hasPendingOutbound() const
 {
 	return !_outBuffer.empty();
+}
+
+void Client::log() const 
+{
+	std::cout << getNick() << "\n";
+	std::cout << getUser() << "\n";
+	std::cout << isRegistered() << "\n";
 }

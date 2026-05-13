@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:44:23 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 20:06:46 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ static std::string toLower(std::string str)
 volatile bool Server::_shutdownRequested = false;
 
 Server::Server(int port, const std::string &password) : _serverFd(-1),
-														_port(port), _password(password), _name("ircserv"), _router(NULL)
+														_port(port), _password(password), _name("ircserv"), _router(new CommandRouter(*this))
 {
 }
 
@@ -193,6 +193,22 @@ void Server::run()
 	// event loop
 	while (!_shutdownRequested)
 	{
+		// POLLOUT toggling
+		for (size_t i = 1; i < _pollFds.size(); i++)
+		{
+			int fd = _pollFds[i].fd;
+			Client *client = _clients[fd];
+
+			if (client->hasPendingOutbound())
+			{
+				_pollFds[i].events |= POLLOUT;
+			}
+			else
+			{
+				_pollFds[i].events &= ~POLLOUT;
+			}
+		}
+
 		// put the program to sleep until a socket wake it up
 		// '-1' to wait forever without timing out
 		int poll_count = poll(&_pollFds[0], _pollFds.size(), -1);
@@ -251,7 +267,8 @@ void Server::run()
 				while (client->extractLine(line))
 				{
 					std::cout << "[FD " << fd << "] Incoming: " << line << std::endl;
-					client->queueOutbound("Server heard: " + line);
+					// client->queueOutbound("Server heard: " + line);
+					_router->dispatch(*client, line);
 				}
 			}
 
