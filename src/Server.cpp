@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:09:41 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:44:23 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -222,10 +222,6 @@ void Server::run()
 
 		// TODO: check client chat messages
 
-		// Check clients
-		// Death row list
-		std::vector<std::pair<Client *, std::string> > to_disconnect;
-
 		for (size_t i = 1; i < _pollFds.size(); ++i)
 		{
 			int fd = _pollFds[i].fd;
@@ -239,7 +235,7 @@ void Server::run()
 
 				if (bytes_read <= 0)
 				{
-					to_disconnect.push_back(std::make_pair(client, "Client disconnected abruptly"));
+					scheduleDisconnect(client, "Client disconnected abruptly");
 					continue;
 				}
 
@@ -247,7 +243,7 @@ void Server::run()
 
 				if (client->isInboundOverflow())
 				{
-					to_disconnect.push_back(std::make_pair(client, "Excess flood"));
+					scheduleDisconnect(client, "Excess flood");
 					continue;
 				}
 
@@ -264,17 +260,18 @@ void Server::run()
 			{
 				if (!client->flushOutbound())
 				{
-					to_disconnect.push_back(std::make_pair(client, "Fatal send error"));
+					scheduleDisconnect(client, "Fatal send error");
 				}
 			}
 		}
 
 		// Execute disconnections
-		for (size_t i = 0; i < to_disconnect.size(); ++i)
+		for (size_t i = 0; i < _disconnectQueue.size(); ++i)
 		{
 			// .first Client*, .second reason
-			disconnectClient(to_disconnect[i].first, to_disconnect[i].second);
+			disconnectClient(_disconnectQueue[i].first, _disconnectQueue[i].second);
 		}
+		_disconnectQueue.clear();
 	}
 
 	// cleanup after ctrl+c
@@ -357,4 +354,9 @@ void Server::disconnectClient(Client *client, const std::string &reason)
 	delete client;
 
 	// TODO: call Channel-removeMember()
+}
+
+void Server::scheduleDisconnect(Client *c, const std::string &reason)
+{
+	_disconnectQueue.push_back(std::make_pair(c, reason));
 }

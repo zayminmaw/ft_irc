@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:36:23 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:46:29 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -321,5 +321,16 @@ void CommandRouter::handlePing(Client& c, const IRCMessage& m) {
 	c.queueOutbound(":" + _server.getName() + " PONG " + _server.getName() + " :" + m.params[0]);
 }
 
-void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
+void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { 
+
+	std::string reason = "Client quit";
+
+	// if message exist, use user custom quit message
+	if (!m.params.empty())
+	{
+		reason = "Quit: " + m.params[0];
+	}
+
+	_server.scheduleDisconnect(&c, reason);
+ }
 
