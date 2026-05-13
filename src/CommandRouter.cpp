@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 20:18:40 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 22:31:02 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,6 @@ std::string CommandRouter::_buildNamesList(Channel* ch) {
 }
 
 void CommandRouter::tryRegister(Client& c) { 
-	c.log();
 	if (c.isRegistered())
 		return;
 	if (!_server.getPassword().empty() && !c.hasPass())
@@ -132,7 +131,6 @@ void CommandRouter::tryRegister(Client& c) {
 		return;
 
 	c.markRegistered();
-	c.log();
 	c.queueOutbound(Reply::welcome(_server.getName(), c.getNick()));
     c.queueOutbound(Reply::yourHost(_server.getName(), c.getNick()));
     c.queueOutbound(Reply::created(_server.getName(), c.getNick()));
