@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:09:57 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:32:50 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,11 @@ void Channel::removeOperator(Client *client)
 bool Channel::isOperator(Client *client) const
 {
 	return std::find(_operators.begin(), _operators.end(), client) != _operators.end();
+}
+
+const std::vector<Client *> &Channel::getOperators() const
+{
+	return _operators;
 }
 
 // invite management

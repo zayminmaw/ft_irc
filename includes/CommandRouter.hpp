@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:08:40 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:22:37 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 
 class Server;
 class Client;
+class Channel;
 
 /*
  * IRCMessage

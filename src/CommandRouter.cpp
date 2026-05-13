@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:20:39 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:21:49 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -204,14 +204,14 @@ void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
 void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { 
 	if (!_ensureRegistered(c)) return;
 	if (m.params.empty()) {
-		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
 	std::stringstream ss(m.params[0]);
 	std::string chanName;
 	while (std::getline(ss, chanName, ',')) {
 		if (chanName.empty() || (chanName[0] != '#' && chanName[0] != '$')) {
-			c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+			c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
 			continue;
 		}
 		Channel* ch = _server.getOrCreateChannel(chanName);
@@ -227,13 +227,13 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 
 		// 3. Send topic (332)
 		if (!ch->getTopic().empty())
-			c.send(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
+			c.queueOutbound(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
 		else
-			c.send(Reply::noTopic(_server.getName(), c.getNick(), chanName));
+			c.queueOutbound(Reply::noTopic(_server.getName(), c.getNick(), chanName));
 		
 		// 4. Send names list (353 + 366)
-		c.send(Reply::namReply(_server.getName(), c.getNick(), chanName, _buildNamesList(ch)));
-		c.send(Reply::endOfNames(_server.getName(), c.getNick(), chanName)); 
+		c.queueOutbound(Reply::namReply(_server.getName(), c.getNick(), chanName, _buildNamesList(ch)));
+		c.queueOutbound(Reply::endOfNames(_server.getName(), c.getNick(), chanName)); 
 	}
 }
 
@@ -246,11 +246,11 @@ void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureR
 void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) { 
 	if (!_ensureRegistered(c)) return;
 	if (m.params.empty()) {
-		c.send(Reply::errNoRecipient(_server.getName(), c.getNick(), m.command));
+		c.queueOutbound(Reply::errNoRecipient(_server.getName(), c.getNick(), m.command));
 		return;
 	}
 	if (m.params.size() < 2) {
-		c.send(Reply::errNoTextToSend(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errNoTextToSend(_server.getName(), c.getNick()));
 	}
 	std::string text = m.params[1];
 	std::stringstream ss(m.params[0]);
@@ -259,15 +259,15 @@ void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) {
 		if (target[0] == '#' || target[0] == '&') {
 			Channel* ch = _server.findChannel(target);
 			if (!ch)
-				c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), target));
+				c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), target));
 			else 
 				ch->broadcast(Reply::privmsgMsg(c.getPrefix(), target, text), &c);
 		} else {
 			Client* targetClient = _server.findClientByNick(target);
 			if (!targetClient)
-				c.send(Reply::errNoSuchNick(_server.getName(), c.getNick(), target));
+				c.queueOutbound(Reply::errNoSuchNick(_server.getName(), c.getNick(), target));
 			else
-				targetClient->send(Reply::privmsgMsg(c.getPrefix(), target, text));
+				targetClient->queueOutbound(Reply::privmsgMsg(c.getPrefix(), target, text));
 		}
 	}
 }
@@ -284,17 +284,17 @@ void CommandRouter::handleNotice(Client& c, const IRCMessage& m) {
             if (ch) ch->broadcast(Reply::noticeMsg(c.getPrefix(), target, text), &c);
         } else {
             Client* targetClient = _server.findClientByNick(target);
-            if (targetClient) targetClient->send(Reply::noticeMsg(c.getPrefix(), target, text));
+            if (targetClient) targetClient->queueOutbound(Reply::noticeMsg(c.getPrefix(), target, text));
         }
     }
 }
 
 void CommandRouter::handlePing(Client& c, const IRCMessage& m) { 
 	if (m.params.empty()) {
-		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
-	c.send(":" + _server.getName() + " PONG " + _server.getName() + " :" + m.params[0]);
+	c.queueOutbound(":" + _server.getName() + " PONG " + _server.getName() + " :" + m.params[0]);
 }
 
 void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { (void)c; (void)m; }
