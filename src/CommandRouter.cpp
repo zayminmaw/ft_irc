@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:13:39 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:16:34 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -210,7 +210,7 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 	std::stringstream ss(m.params[0]);
 	std::string chanName;
 	while (std::getline(ss, chanName, ',')) {
-		if (chanName[0] != '#' && chanName[1] != '$') {
+		if (chanName.empty() || (chanName[0] != '#' && chanName[0] != '$')) {
 			c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
 			continue;
 		}
