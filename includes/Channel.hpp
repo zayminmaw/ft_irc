@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/05 21:32:58 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/07 12:00:00 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:01:21 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@ public:
 	size_t             memberCount() const;
 
 	// ---- operators -------------------------------------------------------
+	std::vector<Client*> getOperators();
 	void               addOperator(Client* c);
 	void               removeOperator(Client* c);
 	bool               isOperator(Client* c) const;

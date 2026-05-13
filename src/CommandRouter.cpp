@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 21:30:13 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 19:13:39 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,6 +110,18 @@ bool CommandRouter::_ensureRegistered(Client& c) {
 	return false;
 }
 
+std::string CommandRouter::_buildNamesList(Channel* ch) {
+	std::string list;
+	std::vector<Client*> members = ch->getMembers();
+	for (size_t i = 0; i < members.size(); ++i) {
+		if (i > 0) list += " ";
+		if (ch->isOperator(members[i]))
+			list += "@";
+		list += members[i]->getNick();
+	}
+	return list;
+}
+
 void CommandRouter::tryRegister(Client& c) { 
 	if (c.isRegistered())
 		return;
@@ -189,7 +201,42 @@ void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
     c.send(":" + _server.getName() + " CAP * LS :");
 }
 
-void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::stringstream ss(m.params[0]);
+	std::string chanName;
+	while (std::getline(ss, chanName, ',')) {
+		if (chanName[0] != '#' && chanName[1] != '$') {
+			c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+			continue;
+		}
+		Channel* ch = _server.getOrCreateChannel(chanName);
+		if (!ch || ch->hasMember(&c)) continue;
+
+		// 1. Add to channel and if first join add as operator
+		ch->addMember(&c);
+		if (ch->getOperators().empty())
+			ch->addOperator(&c);
+		
+		// 2. Broadcast JOIN to everyone (including sender)
+		ch->broadcast(Reply::joinMsg(c.getPrefix(), chanName), NULL);
+
+		// 3. Send topic (332)
+		if (!ch->getTopic().empty())
+			c.send(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
+		else
+			c.send(Reply::noTopic(_server.getName(), c.getNick(), chanName));
+		
+		// 4. Send names list (353 + 366)
+		c.send(Reply::namReply(_server.getName(), c.getNick(), chanName, _buildNamesList(ch)));
+		c.send(Reply::endOfNames(_server.getName(), c.getNick(), chanName)); 
+	}
+}
+
 void CommandRouter::handlePart(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
