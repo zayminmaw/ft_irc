@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:32:45 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/13 21:14:57 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -262,7 +262,42 @@ void CommandRouter::handlePart(Client& c, const IRCMessage& m) {
 	}
 }
 
-void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::string chanName = m.params[0];
+	Channel* ch = _server.findChannel(chanName);
+	if (!ch) {
+		c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+		return;
+	} 
+	if (!ch->hasMember(&c)) {
+		c.send(Reply::errNotOnChannel(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+	
+	// 1. Query topic (1 param)
+	if (m.params.size() == 1) {
+		if (!ch->getTopic().empty())
+			c.send(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
+		else
+			c.send(Reply::noTopic(_server.getName(), c.getNick(), chanName));
+	}
+
+	// 2. Set Topic (2+ params)
+	// Check if +t is set and user is not op
+	if (ch->isTopicLocked() && !ch->isOperator(&c)) {
+		c.send(Reply::errChanOPrivsNeeded(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+	std::string newTopic = m.params[1];
+	ch->setTopic(newTopic);
+	ch->broadcast(Reply::topicMsg(c.getPrefix(), chanName, newTopic), NULL);
+}
+
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
