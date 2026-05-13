@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:21:49 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:35:30 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -237,7 +237,31 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 	}
 }
 
-void CommandRouter::handlePart(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handlePart(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::string reason = (m.params.size() > 1) ? m.params[1] : c.getNick();
+	std::stringstream ss(m.params[0]);
+	std::string chanName;
+	while (std::getline(ss, chanName, ',')) {
+		Channel* ch = _server.findChannel(chanName);
+		if (!ch) {
+			c.send(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+			continue;
+		} 
+		if (!ch->hasMember(&c)) {
+			c.send(Reply::errNotOnChannel(_server.getName(), c.getNick(), chanName));
+			continue;
+		}
+		ch->broadcast(Reply::partMsg(c.getPrefix(), chanName, reason), NULL);
+		ch->removeMember(&c);
+		_server.removeChannelIfEmpty(chanName);
+	}
+}
+
 void CommandRouter::handleTopic(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
