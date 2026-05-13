@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 02:24:40 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/05/13 19:13:34 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void CommandRouter::dispatch(Client& c, const std::string& line)
 	if (it != _handlers.end()) {
 		(this->*(it->second))(c, msg);
 	} else {
-		c.send(Reply::errUnknownCommand(_server.getName(), c.getNick(), msg.command));
+		c.queueOutbound(Reply::errUnknownCommand(_server.getName(), c.getNick(), msg.command));
 	}
 }
 
@@ -105,7 +105,7 @@ bool CommandRouter::_ensureRegistered(Client& c) {
 	if (c.isRegistered()) {
 		return true;
 	}
-	c.send(Reply::errNotRegistered(_server.getName(), c.getNick()));
+	c.queueOutbound(Reply::errNotRegistered(_server.getName(), c.getNick()));
 	return false;
 }
 
@@ -117,23 +117,23 @@ void CommandRouter::tryRegister(Client& c) {
 	if (!c.hasNick() || !c.hasUser())
 		return;
 	c.markRegistered();
-	c.send(Reply::welcome(_server.getName(), c.getNick()));
-    c.send(Reply::yourHost(_server.getName(), c.getNick()));
-    c.send(Reply::created(_server.getName(), c.getNick()));
-    c.send(Reply::myInfo(_server.getName(), c.getNick()));
+	c.queueOutbound(Reply::welcome(_server.getName(), c.getNick()));
+    c.queueOutbound(Reply::yourHost(_server.getName(), c.getNick()));
+    c.queueOutbound(Reply::created(_server.getName(), c.getNick()));
+    c.queueOutbound(Reply::myInfo(_server.getName(), c.getNick()));
 }
 
 void CommandRouter::handlePass(Client& c, const IRCMessage& m) { 
 	if (c.isRegistered()) {
-		c.send(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
 		return;
 	}
 	if (m.params.empty()) {
-		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
 	if (m.params[0] != _server.getPassword()) {
-		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
 		return;
 	}
 	c.markPass();
@@ -141,21 +141,21 @@ void CommandRouter::handlePass(Client& c, const IRCMessage& m) {
  
 void CommandRouter::handleNick(Client& c, const IRCMessage& m) { 
 	if (m.params.empty()) {
-		c.send(Reply::errNoNicknameGiven(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errNoNicknameGiven(_server.getName(), c.getNick()));
 		return;
 	}
 	if (!_server.getPassword().empty() && !c.hasPass()) {
-		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
 		return;
 	}
 	std::string newNick = m.params[0];
 	if (newNick.find_first_of(" ,*?!@.") != std::string::npos) {
-		c.send(Reply::errErroneousNick(_server.getName(), c.getNick(), newNick));
+		c.queueOutbound(Reply::errErroneousNick(_server.getName(), c.getNick(), newNick));
 		return;
 	}
 	Client* existing = _server.findClientByNick(newNick);
 	if (existing && existing != &c) {
-		c.send(Reply::errNickInUse(_server.getName(), c.getNick(), newNick));
+		c.queueOutbound(Reply::errNickInUse(_server.getName(), c.getNick(), newNick));
 		return;
 	}
 	if (c.isRegistered()) {
@@ -168,15 +168,15 @@ void CommandRouter::handleNick(Client& c, const IRCMessage& m) {
 
 void CommandRouter::handleUser(Client& c, const IRCMessage& m) { 
 	if (c.isRegistered()) {
-		c.send(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errAlreadyRegistered(_server.getName(), c.getNick()));
 		return;
 	}
 	if (m.params.size() < 4) {
-		c.send(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
 	if (!_server.getPassword().empty() && !c.hasPass()) {
-		c.send(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		c.queueOutbound(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
 		return;
 	}
 	c.setUser(m.params[0]);
@@ -185,7 +185,7 @@ void CommandRouter::handleUser(Client& c, const IRCMessage& m) {
 
 void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
     (void)m;
-    c.send(":" + _server.getName() + " CAP * LS :");
+    c.queueOutbound(":" + _server.getName() + " CAP * LS :");
 }
 
 void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }

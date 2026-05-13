@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 20:33:32 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 18:49:33 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,4 +195,3 @@ bool Client::hasPendingOutbound() const
 {
 	return !_outBuffer.empty();
 }
- 

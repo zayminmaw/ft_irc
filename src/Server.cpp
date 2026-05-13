@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 19:46:27 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:09:41 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,7 +220,61 @@ void Server::run()
 			acceptNewClient();
 		}
 
-		// check client chat messages
+		// TODO: check client chat messages
+
+		// Check clients
+		// Death row list
+		std::vector<std::pair<Client *, std::string> > to_disconnect;
+
+		for (size_t i = 1; i < _pollFds.size(); ++i)
+		{
+			int fd = _pollFds[i].fd;
+			Client *client = _clients[fd];
+
+			// check did client send data
+			if (_pollFds[i].revents & POLLIN)
+			{
+				char buffer[1024];
+				int bytes_read = recv(fd, buffer, sizeof(buffer), 0);
+
+				if (bytes_read <= 0)
+				{
+					to_disconnect.push_back(std::make_pair(client, "Client disconnected abruptly"));
+					continue;
+				}
+
+				client->appendToBuffer(buffer, bytes_read);
+
+				if (client->isInboundOverflow())
+				{
+					to_disconnect.push_back(std::make_pair(client, "Excess flood"));
+					continue;
+				}
+
+				std::string line;
+				while (client->extractLine(line))
+				{
+					std::cout << "[FD " << fd << "] Incoming: " << line << std::endl;
+					client->queueOutbound("Server heard: " + line);
+				}
+			}
+
+			// can we send client data
+			if (_pollFds[i].revents & POLLOUT)
+			{
+				if (!client->flushOutbound())
+				{
+					to_disconnect.push_back(std::make_pair(client, "Fatal send error"));
+				}
+			}
+		}
+
+		// Execute disconnections
+		for (size_t i = 0; i < to_disconnect.size(); ++i)
+		{
+			// .first Client*, .second reason
+			disconnectClient(to_disconnect[i].first, to_disconnect[i].second);
+		}
 	}
 
 	// cleanup after ctrl+c
@@ -279,4 +333,28 @@ void Server::acceptNewClient()
 	_pollFds.push_back(pfd);
 
 	std::cout << "[Server] Accepted new connection from " << ip << " on FD " << client_fd << std::endl;
+}
+
+// I/O handlers
+void Server::disconnectClient(Client *client, const std::string &reason)
+{
+	int fd = client->getFd();
+
+	std::cout << "[Server] Disconnecting FD " << fd << " - Reason: " << reason << std::endl;
+
+	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
+	{
+		if (it->fd == fd)
+		{
+			_pollFds.erase(it);
+			break;
+		}
+	}
+
+	_clients.erase(fd);
+
+	close(fd);
+	delete client;
+
+	// TODO: call Channel-removeMember()
 }

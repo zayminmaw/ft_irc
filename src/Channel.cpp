@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 20:51:17 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/13 19:09:57 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,6 +129,6 @@ void Channel::broadcast(const std::string &msg, Client *except)
 		{
 			continue;
 		}
-		current->send(msg);
+		current->queueOutbound(msg);
 	}
 }
