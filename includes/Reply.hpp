@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/11 21:32:46 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/14 21:02:12 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,6 +101,7 @@ namespace Reply
 	                               const std::string& modes, const std::string& args);
 	std::string inviteMsg         (const std::string& prefix, const std::string& target,
 	                               const std::string& chan);
+	std::string errorMsg(const std::string& reason);
 }
 
 #endif

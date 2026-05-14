@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/12 02:24:59 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/05/14 20:52:01 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,4 +167,8 @@ std::string Reply::modeMsg(const std::string& prefix, const std::string& chan, c
 
 std::string Reply::inviteMsg(const std::string& prefix, const std::string& target, const std::string& chan) {
 	return ":" + prefix + " INVITE " + target + " " + chan;
+}
+
+std::string Reply::errorMsg(const std::string& reason) {
+    return "ERROR :" + reason + "\r\n";
 }

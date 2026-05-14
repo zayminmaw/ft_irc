@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:21 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 19:44:31 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/14 20:41:28 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,16 @@
 class Client;
 class Channel;
 class CommandRouter;
+
+struct DisconnectAction
+{
+	int fd;
+	std::string reason;
+	bool droppedByPeer;
+
+	// just to make it easy to add to the vector
+	DisconnectAction(int f, const std::string &r, bool d) : fd(f), reason(r), droppedByPeer(d) {}
+};
 
 /*
  * Server
@@ -63,8 +73,8 @@ public:
 	//
 	// `reason` is the QUIT message ("Client closed connection",
 	//  "Read error", "ERROR :Buffer overflow", etc.).
-	void disconnectClient(Client *c, const std::string &reason);
-	void scheduleDisconnect(Client* c, const std::string& reason);
+	void disconnectClient(Client *c, const std::string &reason, bool droppedByPeer);
+	void scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer = false);
 
 private:
 	Server(const Server &);
@@ -86,8 +96,8 @@ private:
 	std::vector<struct pollfd> _pollFds;
 	std::map<int, Client *> _clients;			// fd -> Client
 	std::map<std::string, Channel *> _channels; // name (lowercased) -> Channel
-	std::vector<std::pair<Client *, std::string> > _disconnectQueue;
-	
+	std::vector<DisconnectAction> _disconnectQueue;
+
 	CommandRouter *_router;
 
 	static volatile bool _shutdownRequested;

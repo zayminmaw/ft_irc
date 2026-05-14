@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 20:06:46 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/14 21:10:43 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 #include <csignal>		// for signal()
 #include <errno.h>
 #include <arpa/inet.h> // For inet_ntoa
+#include "Reply.hpp"
 
 static std::string toLower(std::string str)
 {
@@ -251,7 +252,7 @@ void Server::run()
 
 				if (bytes_read <= 0)
 				{
-					scheduleDisconnect(client, "Client disconnected abruptly");
+					scheduleDisconnect(client, "Client disconnected abruptly", true);
 					continue;
 				}
 
@@ -280,13 +281,31 @@ void Server::run()
 					scheduleDisconnect(client, "Fatal send error");
 				}
 			}
+			// TIMEOUT REAPER
+			time_t currentTime = time(NULL);
+			for (size_t i = 1; i < _pollFds.size(); ++i)
+			{
+				int fd = _pollFds[i].fd;
+				Client *client = _clients[fd];
+
+				// not registered and 30 seconds have passed
+				if (!client->isRegistered() && (currentTime - client->getConnectionTime() > 60))
+				{
+					scheduleDisconnect(client, "Registration timeout");
+				}
+			}
 		}
 
 		// Execute disconnections
 		for (size_t i = 0; i < _disconnectQueue.size(); ++i)
 		{
 			// .first Client*, .second reason
-			disconnectClient(_disconnectQueue[i].first, _disconnectQueue[i].second);
+			int target_fd = _disconnectQueue[i].fd;
+
+			if (_clients.find(target_fd) != _clients.end())
+			{
+				disconnectClient(_clients[target_fd], _disconnectQueue[i].reason, _disconnectQueue[i].droppedByPeer);
+			}
 		}
 		_disconnectQueue.clear();
 	}
@@ -350,11 +369,18 @@ void Server::acceptNewClient()
 }
 
 // I/O handlers
-void Server::disconnectClient(Client *client, const std::string &reason)
+void Server::disconnectClient(Client *client, const std::string &reason, bool droppedByPeer)
 {
 	int fd = client->getFd();
 
 	std::cout << "[Server] Disconnecting FD " << fd << " - Reason: " << reason << std::endl;
+
+	if (!droppedByPeer)
+	{
+
+		std::string error_msg = Reply::errorMsg("Closing Link: [" + client->getIp() + "] (" + reason + ")");
+		send(fd, error_msg.c_str(), error_msg.length(), 0);
+	}
 
 	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
 	{
@@ -373,7 +399,7 @@ void Server::disconnectClient(Client *client, const std::string &reason)
 	// TODO: call Channel-removeMember()
 }
 
-void Server::scheduleDisconnect(Client *c, const std::string &reason)
+void Server::scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer)
 {
-	_disconnectQueue.push_back(std::make_pair(c, reason));
+	_disconnectQueue.push_back(DisconnectAction(c->getFd(), reason, droppedByPeer));
 }

@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/04 20:05:19 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 20:17:11 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/14 19:05:17 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include <ctime>
 
 class Channel;
 
@@ -86,6 +87,8 @@ public:
 
 	void log() const;
 
+	time_t getConnectionTime() const;
+
 private:
 	Client(const Client &);
 	Client &operator=(const Client &);
@@ -97,6 +100,8 @@ private:
 
 	std::string _inBuffer;
 	std::string _outBuffer;
+
+	time_t _connectionTime;
 
 	bool _hasPass;
 	bool _registered;

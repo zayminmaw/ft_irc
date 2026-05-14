@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 20:18:15 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/14 19:06:06 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
 												_hasPass(false), _registered(false)
 {
+	_connectionTime = time(NULL);
 }
 
 Client::~Client()
@@ -196,9 +197,14 @@ bool Client::hasPendingOutbound() const
 	return !_outBuffer.empty();
 }
 
-void Client::log() const 
+void Client::log() const
 {
 	std::cout << getNick() << "\n";
 	std::cout << getUser() << "\n";
 	std::cout << isRegistered() << "\n";
+}
+
+time_t Client::getConnectionTime() const
+{
+	return _connectionTime;
 }
