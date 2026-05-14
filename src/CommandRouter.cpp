@@ -3,13 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/13 22:32:24 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/14 20:21:17 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+
+#include <cstdlib>
 #include "CommandRouter.hpp"
 #include "Reply.hpp"
 #include "Client.hpp"
@@ -300,7 +302,93 @@ void CommandRouter::handleTopic(Client& c, const IRCMessage& m) {
 	ch->broadcast(Reply::topicMsg(c.getPrefix(), chanName, newTopic), NULL);
 }
 
-void CommandRouter::handleMode(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+void CommandRouter::handleMode(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.empty()) {
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	Channel* ch = _server.findChannel(m.params[0]);
+	if (!ch) {
+		c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), m.params[0]));
+		return;
+	}
+	
+	// 1. Query current modes
+	if (m.params.size() == 1) return;
+
+	// 2. Change modes (requires operator)
+	if (!ch->isOperator(&c)) {
+		c.queueOutbound(Reply::errChanOPrivsNeeded(_server.getName(), c.getNick(), ch->getName()));
+		return;
+	}
+
+	std::string modes = m.params[1];
+	std::string appliedModes = "";
+	std::string appliedArgs = "";
+	size_t argIdx = 2;
+	char currentSign = '\0';
+
+	for (size_t i = 0; i < modes.length(); ++i) {
+		char mode = modes[i];
+		if (mode == '+' || mode == '-') {
+			currentSign = mode;
+			continue;
+		}
+		if (currentSign == '\0') continue;
+		bool plus = (currentSign == '+');
+
+		if (mode == 'i') {
+			ch->setInviteOnly(plus);
+			appliedModes += currentSign; 
+			appliedModes += mode;
+		} else if (mode == 't') {
+			ch->setTopicLocked(plus);
+			appliedModes += currentSign; 
+			appliedModes += mode;
+		} else if (mode == 'k') {
+			if (plus && argIdx < m.params.size()) {
+				ch->setKey(m.params[argIdx]);
+				appliedModes += currentSign; 
+				appliedModes += mode;
+				appliedArgs += " " + m.params[argIdx++];
+			} else if (!plus) {
+				ch->setKey("");
+				appliedModes += currentSign; 
+				appliedModes += mode;
+			}
+		} else if (mode == 'l') {
+			if (plus && argIdx < m.params.size()) {
+				ch->setUserLimit(std::atoi(m.params[argIdx].c_str()));
+				appliedModes += currentSign; 
+				appliedModes += mode;
+				appliedArgs += " " + m.params[argIdx++];
+			} else if (!plus) {
+				ch->setUserLimit(0);
+				appliedModes += currentSign; 
+				appliedModes += mode;
+			}
+		} else if (mode == 'o') {
+			if (argIdx < m.params.size()) {
+				Client* target = _server.findClientByNick(m.params[argIdx]);
+				if (target && ch->hasMember(target)) {
+					if (plus) ch->addOperator(target);
+					else ch->removeOperator(target);
+					appliedModes += currentSign; 
+					appliedModes += mode;
+					appliedArgs += " " + m.params[argIdx];
+				} else {
+					c.queueOutbound(Reply::errUserNotInChan(_server.getName(), c.getNick(), m.params[argIdx], ch->getName()));
+				}
+				argIdx++;
+			}
+		}
+	} 
+	if (!appliedModes.empty()) {
+		ch->broadcast(Reply::modeMsg(c.getPrefix(), ch->getName(), appliedModes, appliedArgs), NULL);
+	}
+}
+
 void CommandRouter::handleKick(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
 
