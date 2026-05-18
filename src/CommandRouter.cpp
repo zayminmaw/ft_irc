@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/14 21:19:51 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/15 18:42:33 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -408,10 +408,14 @@ void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) {
 	while (std::getline(ss,target, ',')) {
 		if (target[0] == '#' || target[0] == '&') {
 			Channel* ch = _server.findChannel(target);
-			if (!ch)
+			if (!ch) {
 				c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), target));
-			else 
+			} else if (!ch->hasMember(&c)) {
+				c.queueOutbound(Reply::errCannotSendToChan(_server.getName(), c.getNick(), target));
+			}
+			else {
 				ch->broadcast(Reply::privmsgMsg(c.getPrefix(), target, text), &c);
+			}
 		} else {
 			Client* targetClient = _server.findClientByNick(target);
 			if (!targetClient)
