@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/14 21:19:58 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/19 21:12:04 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,10 @@ std::string Reply::topic(const std::string& serverName, const std::string& nick,
 
 std::string Reply::noTopic(const std::string& serverName, const std::string& nick, const std::string& chan) {
 	return _fmt(serverName, "331", nick) +  chan + " :No topic is set";
+}
+
+std::string Reply::rplInviting(const std::string& serverName, const std::string& nick, const std::string& target, const std::string& chan) {
+	return _fmt(serverName, "341", nick) + target + " " + chan;
 }
 
 std::string Reply::namReply(const std::string& serverName, const std::string& nick, const std::string& chan, const std::string& names) {

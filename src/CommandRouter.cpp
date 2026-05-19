@@ -6,7 +6,7 @@
 /*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/19 20:34:07 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/19 21:12:48 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -425,7 +425,42 @@ void CommandRouter::handleKick(Client& c, const IRCMessage& m) {
 	}
 	_server.removeChannelIfEmpty(chanName);
 }
-void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { if (!_ensureRegistered(c)) return; (void)m; }
+
+void CommandRouter::handleInvite(Client& c, const IRCMessage& m) { 
+	if (!_ensureRegistered(c)) return;
+	if (m.params.size() < 2) {
+		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
+		return;
+	}
+	std::string targetNick = m.params[0];
+	std::string chanName = m.params[1];
+	Channel* ch = _server.findChannel(chanName);
+	if (!ch) {
+		c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
+		return;
+	}
+	if (!ch->hasMember(&c)) {
+		c.queueOutbound(Reply::errNotOnChannel(_server.getName(), c.getNick(), ch->getName()));
+		return;
+	}
+	// If invite-only (+i) mode is active, you must be a chan operator to invite someone
+	if (ch->isInviteOnly() && !ch->isOperator(&c)) {
+		c.queueOutbound(Reply::errChanOPrivsNeeded(_server.getName(), c.getNick(), ch->getName()));
+		return;
+	}
+	Client* targetClient = _server.findClientByNick(targetNick);
+	if (!targetClient) {
+		c.queueOutbound(Reply::errNoSuchNick(_server.getName(), c.getNick(), targetNick));
+		return;
+	}
+	if (ch->hasMember(targetClient)) {
+		c.queueOutbound(Reply::errUserOnChannel(_server.getName(), c.getNick(), targetNick, ch->getName()));
+		return;
+	}
+	ch->invite(targetClient);
+	targetClient->queueOutbound(Reply::inviteMsg(c.getPrefix(), targetNick, ch->getName()));
+	c.queueOutbound(Reply::rplInviting(_server.getName(), c.getNick(), targetNick, ch->getName()));
+}
 
 void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) { 
 	if (!_ensureRegistered(c)) return;

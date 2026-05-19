@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/14 21:02:12 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/19 21:03:39 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,8 @@ namespace Reply
 	                               const std::string& chan, const std::string& topic);     // 332
 	std::string noTopic           (const std::string& serverName, const std::string& nick,
 	                               const std::string& chan);                                // 331
+	std::string rplInviting		  (const std::string& serverName, const std::string& nick,  // 341
+								   const std::string& target, const std::string& chan);
 	std::string namReply          (const std::string& serverName, const std::string& nick,
 	                               const std::string& chan, const std::string& names);     // 353
 	std::string endOfNames        (const std::string& serverName, const std::string& nick,
