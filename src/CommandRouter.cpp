@@ -204,15 +204,31 @@ void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
     c.queueOutbound(":" + _server.getName() + " CAP * LS :");
 }
 
-void CommandRouter::handleJoin(Client& c, const IRCMessage& m) { 
+void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 	if (!_ensureRegistered(c)) return;
 	if (m.params.empty()) {
 		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
-	std::stringstream ss(m.params[0]);
-	std::string chanName;
-	while (std::getline(ss, chanName, ',')) {
+
+	// Parse comma-separated channel and key lists ("JOIN #a,#b key1,key2")
+	std::vector<std::string> chans;
+	std::vector<std::string> keys;
+	{
+		std::stringstream cs(m.params[0]);
+		std::string name;
+		while (std::getline(cs, name, ','))
+			chans.push_back(name);
+		if (m.params.size() > 1) {
+			std::stringstream ks(m.params[1]);
+			std::string k;
+			while (std::getline(ks, k, ','))
+				keys.push_back(k);
+		}
+	}
+
+	for (size_t idx = 0; idx < chans.size(); ++idx) {
+		const std::string& chanName = chans[idx];
 		if (chanName.empty() || (chanName[0] != '#' && chanName[0] != '&')) {
 			c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), chanName));
 			continue;
@@ -220,23 +236,42 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 		Channel* ch = _server.getOrCreateChannel(chanName);
 		if (!ch || ch->hasMember(&c)) continue;
 
-		// 1. Add to channel and if first join add as operator
+		// 1. Enforce channel modes. For a freshly created channel none of these
+		//    flags are set, so the checks pass naturally and the joiner becomes op.
+		if (ch->isInviteOnly() && !ch->isInvited(&c)) {
+			c.queueOutbound(Reply::errInviteOnlyChan(_server.getName(), c.getNick(), chanName));
+			continue;
+		}
+		if (ch->hasKey()) {
+			std::string supplied = (idx < keys.size()) ? keys[idx] : "";
+			if (supplied != ch->getKey()) {
+				c.queueOutbound(Reply::errBadChannelKey(_server.getName(), c.getNick(), chanName));
+				continue;
+			}
+		}
+		if (ch->getUserLimit() > 0 && static_cast<int>(ch->memberCount()) >= ch->getUserLimit()) {
+			c.queueOutbound(Reply::errChannelIsFull(_server.getName(), c.getNick(), chanName));
+			continue;
+		}
+
+		// 2. Add to channel; consume any pending invite; first joiner becomes op
 		ch->addMember(&c);
+		ch->consumeInvite(&c);
 		if (ch->getOperators().empty())
 			ch->addOperator(&c);
-		
-		// 2. Broadcast JOIN to everyone (including sender)
+
+		// 3. Broadcast JOIN to everyone (including sender)
 		ch->broadcast(Reply::joinMsg(c.getPrefix(), chanName), NULL);
 
-		// 3. Send topic (332)
+		// 4. Send topic (332)
 		if (!ch->getTopic().empty())
 			c.queueOutbound(Reply::topic(_server.getName(), c.getNick(), chanName, ch->getTopic()));
 		else
 			c.queueOutbound(Reply::noTopic(_server.getName(), c.getNick(), chanName));
-		
-		// 4. Send names list (353 + 366)
+
+		// 5. Send names list (353 + 366)
 		c.queueOutbound(Reply::namReply(_server.getName(), c.getNick(), chanName, _buildNamesList(ch)));
-		c.queueOutbound(Reply::endOfNames(_server.getName(), c.getNick(), chanName)); 
+		c.queueOutbound(Reply::endOfNames(_server.getName(), c.getNick(), chanName));
 	}
 }
 
@@ -476,6 +511,7 @@ void CommandRouter::handlePrivmsg(Client& c, const IRCMessage& m) {
 	std::stringstream ss(m.params[0]);
 	std::string target;
 	while (std::getline(ss,target, ',')) {
+		if (target.empty()) continue;
 		if (target[0] == '#' || target[0] == '&') {
 			Channel* ch = _server.findChannel(target);
 			if (!ch) {
@@ -503,6 +539,7 @@ void CommandRouter::handleNotice(Client& c, const IRCMessage& m) {
 	std::stringstream ss(m.params[0]);
 	std::string target;
 	while (std::getline(ss, target, ',')) {
+        if (target.empty()) continue;
         if (target[0] == '#' || target[0] == '&') {
             Channel* ch = _server.findChannel(target);
             if (ch) ch->broadcast(Reply::noticeMsg(c.getPrefix(), target, text), &c);
