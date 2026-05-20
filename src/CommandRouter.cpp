@@ -395,49 +395,45 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 		if (currentSign == '\0') continue;
 		bool plus = (currentSign == '+');
 
+		bool applied = false;
+		std::string appliedArg;
+
 		if (mode == 'i') {
 			ch->setInviteOnly(plus);
-			appliedModes += currentSign;
-			appliedModes += mode;
+			applied = true;
 		} else if (mode == 't') {
 			ch->setTopicLocked(plus);
-			appliedModes += currentSign;
-			appliedModes += mode;
+			applied = true;
 		} else if (mode == 'k') {
 			if (plus && argIdx < m.params.size()) {
 				ch->setKey(m.params[argIdx]);
-				appliedModes += currentSign;
-				appliedModes += mode;
-				appliedArgs += " " + m.params[argIdx++];
+				appliedArg = m.params[argIdx++];
+				applied = true;
 			} else if (!plus) {
 				ch->setKey("");
-				appliedModes += currentSign;
-				appliedModes += mode;
+				applied = true;
 			}
 		} else if (mode == 'l') {
 			if (plus && argIdx < m.params.size()) {
 				int limit = std::atoi(m.params[argIdx].c_str());
 				if (limit > 0) {
 					ch->setUserLimit(limit);
-					appliedModes += currentSign;
-					appliedModes += mode;
-					appliedArgs += " " + m.params[argIdx];
+					appliedArg = m.params[argIdx];
+					applied = true;
 				}
 				argIdx++;
 			} else if (!plus) {
 				ch->setUserLimit(0);
-				appliedModes += currentSign;
-				appliedModes += mode;
+				applied = true;
 			}
 		} else if (mode == 'o') {
 			if (argIdx < m.params.size()) {
 				Client* target = _server.findClientByNick(m.params[argIdx]);
 				if (target && ch->hasMember(target)) {
 					if (plus) ch->addOperator(target);
-					else ch->removeOperator(target);
-					appliedModes += currentSign;
-					appliedModes += mode;
-					appliedArgs += " " + m.params[argIdx];
+					else      ch->removeOperator(target);
+					appliedArg = m.params[argIdx];
+					applied = true;
 				} else {
 					c.queueOutbound(Reply::errUserNotInChan(_server.getName(), c.getNick(), m.params[argIdx], ch->getName()));
 				}
@@ -445,6 +441,12 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 			}
 		} else {
 			c.queueOutbound(Reply::errUnknownMode(_server.getName(), c.getNick(), mode));
+		}
+
+		if (applied) {
+			appliedModes += currentSign;
+			appliedModes += mode;
+			if (!appliedArg.empty()) appliedArgs += " " + appliedArg;
 		}
 	}
 	if (!appliedModes.empty()) {
