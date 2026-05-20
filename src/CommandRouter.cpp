@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/19 21:12:48 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/20 14:40:10 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,6 +150,7 @@ void CommandRouter::handlePass(Client& c, const IRCMessage& m) {
 	}
 	if (m.params[0] != _server.getPassword()) {
 		c.queueOutbound(Reply::errPasswdMismatch(_server.getName(), c.getNick()));
+		_server.scheduleDisconnect(&c, "Access denied: Bad password", false);
 		return;
 	}
 	c.markPass();
@@ -256,6 +257,7 @@ void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
 
 		// 2. Add to channel; consume any pending invite; first joiner becomes op
 		ch->addMember(&c);
+		c.joinChannel(ch);
 		ch->consumeInvite(&c);
 		if (ch->getOperators().empty())
 			ch->addOperator(&c);
@@ -296,6 +298,7 @@ void CommandRouter::handlePart(Client& c, const IRCMessage& m) {
 		}
 		ch->broadcast(Reply::partMsg(c.getPrefix(), chanName, reason), NULL);
 		ch->removeMember(&c);
+		c.leaveChannel(ch);
 		_server.removeChannelIfEmpty(chanName);
 	}
 }
@@ -410,7 +413,7 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 				appliedArg = m.params[argIdx++];
 				applied = true;
 			} else if (!plus) {
-				ch->setKey("");
+				ch->clearKey();
 				applied = true;
 			}
 		} else if (mode == 'l') {
@@ -483,6 +486,7 @@ void CommandRouter::handleKick(Client& c, const IRCMessage& m) {
 	}
 	ch->broadcast(Reply::kickMsg(c.getPrefix(), ch->getName(), targetNick, reason), NULL);
 	ch->removeMember(targetClient);
+	targetClient->leaveChannel(ch);
 	if (ch->getOperators().empty() && !ch->getMembers().empty()) {
 		Client* newOp = ch->getMembers()[0];
 		ch->addOperator(newOp);
@@ -588,7 +592,7 @@ void CommandRouter::handlePing(Client& c, const IRCMessage& m) {
 	c.queueOutbound(":" + _server.getName() + " PONG " + _server.getName() + " :" + m.params[0]);
 }
 
-void CommandRouter::handleQuit(Client& c, const IRCMessage& m) { 
+void CommandRouter::handleQuit(Client& c, const IRCMessage& m) {
 
 	std::string reason = "Client quit";
 
@@ -596,6 +600,18 @@ void CommandRouter::handleQuit(Client& c, const IRCMessage& m) {
 	if (!m.params.empty())
 	{
 		reason = "Quit: " + m.params[0];
+	}
+
+	// Broadcast QUIT to every channel the client is in, excluding the
+	// quitter, then remove them so the channel no longer holds a stale
+	// pointer once Server::disconnectClient deletes the Client.
+	std::vector<Channel *> chans = c.getChannels();
+	std::string quit = Reply::quitMsg(c.getPrefix(), reason);
+	for (size_t i = 0; i < chans.size(); ++i) {
+		Channel *ch = chans[i];
+		ch->broadcast(quit, &c);
+		ch->removeMember(&c);
+		_server.removeChannelIfEmpty(ch->getName());
 	}
 
 	_server.scheduleDisconnect(&c, reason, true);
