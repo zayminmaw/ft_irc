@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/19 21:03:39 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/20 14:14:47 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,9 @@ namespace Reply
 	                               const std::string& chan);                                // 331
 	std::string rplInviting		  (const std::string& serverName, const std::string& nick,  // 341
 								   const std::string& target, const std::string& chan);
+	std::string channelModeIs     (const std::string& serverName, const std::string& nick,  // 324
+	                               const std::string& chan, const std::string& modes,
+	                               const std::string& args);                                // 324
 	std::string namReply          (const std::string& serverName, const std::string& nick,
 	                               const std::string& chan, const std::string& names);     // 353
 	std::string endOfNames        (const std::string& serverName, const std::string& nick,

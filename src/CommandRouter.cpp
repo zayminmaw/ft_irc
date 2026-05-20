@@ -349,8 +349,30 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 		return;
 	}
 	
-	// 1. Query current modes
-	if (m.params.size() == 1) return;
+	// 1. Query current modes (324)
+	if (m.params.size() == 1) {
+		std::string modeStr = "+";
+		std::string argStr;
+		if (ch->isInviteOnly())  modeStr += "i";
+		if (ch->isTopicLocked()) modeStr += "t";
+		if (ch->hasKey()) {
+			modeStr += "k";
+			// Only show the key to channel members
+			if (ch->hasMember(&c)) {
+				if (!argStr.empty()) argStr += " ";
+				argStr += ch->getKey();
+			}
+		}
+		if (ch->getUserLimit() > 0) {
+			modeStr += "l";
+			std::stringstream ls;
+			ls << ch->getUserLimit();
+			if (!argStr.empty()) argStr += " ";
+			argStr += ls.str();
+		}
+		c.queueOutbound(Reply::channelModeIs(_server.getName(), c.getNick(), ch->getName(), modeStr, argStr));
+		return;
+	}
 
 	// 2. Change modes (requires operator)
 	if (!ch->isOperator(&c)) {
@@ -375,32 +397,36 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 
 		if (mode == 'i') {
 			ch->setInviteOnly(plus);
-			appliedModes += currentSign; 
+			appliedModes += currentSign;
 			appliedModes += mode;
 		} else if (mode == 't') {
 			ch->setTopicLocked(plus);
-			appliedModes += currentSign; 
+			appliedModes += currentSign;
 			appliedModes += mode;
 		} else if (mode == 'k') {
 			if (plus && argIdx < m.params.size()) {
 				ch->setKey(m.params[argIdx]);
-				appliedModes += currentSign; 
+				appliedModes += currentSign;
 				appliedModes += mode;
 				appliedArgs += " " + m.params[argIdx++];
 			} else if (!plus) {
 				ch->setKey("");
-				appliedModes += currentSign; 
+				appliedModes += currentSign;
 				appliedModes += mode;
 			}
 		} else if (mode == 'l') {
 			if (plus && argIdx < m.params.size()) {
-				ch->setUserLimit(std::atoi(m.params[argIdx].c_str()));
-				appliedModes += currentSign; 
-				appliedModes += mode;
-				appliedArgs += " " + m.params[argIdx++];
+				int limit = std::atoi(m.params[argIdx].c_str());
+				if (limit > 0) {
+					ch->setUserLimit(limit);
+					appliedModes += currentSign;
+					appliedModes += mode;
+					appliedArgs += " " + m.params[argIdx];
+				}
+				argIdx++;
 			} else if (!plus) {
 				ch->setUserLimit(0);
-				appliedModes += currentSign; 
+				appliedModes += currentSign;
 				appliedModes += mode;
 			}
 		} else if (mode == 'o') {
@@ -409,7 +435,7 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 				if (target && ch->hasMember(target)) {
 					if (plus) ch->addOperator(target);
 					else ch->removeOperator(target);
-					appliedModes += currentSign; 
+					appliedModes += currentSign;
 					appliedModes += mode;
 					appliedArgs += " " + m.params[argIdx];
 				} else {
@@ -417,8 +443,10 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 				}
 				argIdx++;
 			}
+		} else {
+			c.queueOutbound(Reply::errUnknownMode(_server.getName(), c.getNick(), mode));
 		}
-	} 
+	}
 	if (!appliedModes.empty()) {
 		ch->broadcast(Reply::modeMsg(c.getPrefix(), ch->getName(), appliedModes, appliedArgs), NULL);
 	}

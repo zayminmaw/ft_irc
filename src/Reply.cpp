@@ -17,7 +17,7 @@ static std::string _fmt(const std::string &sv, const std::string &nr, const std:
 }
 
 std::string Reply::welcome(const std::string& serverName, const std::string& nick) {
-	return _fmt(serverName, "001", nick) + ":Welcome to the Internet Relat Network " + nick; 
+	return _fmt(serverName, "001", nick) + ":Welcome to the Internet Relay Network " + nick;
 }
 
 std::string Reply::yourHost(const std::string& serverName, const std::string& nick) {
@@ -29,7 +29,7 @@ std::string Reply::created(const std::string& serverName, const std::string& nic
 }
 
 std::string Reply::myInfo(const std::string& serverName, const std::string& nick) {
-	return _fmt(serverName, "004", nick) + serverName + " 1.0 " + "<usermodes> <chanmodes>";
+	return _fmt(serverName, "004", nick) + serverName + " 1.0 o itkol";
 }
 
 std::string Reply::topic(const std::string& serverName, const std::string& nick, const std::string& chan, const std::string& topic) {
@@ -38,6 +38,10 @@ std::string Reply::topic(const std::string& serverName, const std::string& nick,
 
 std::string Reply::noTopic(const std::string& serverName, const std::string& nick, const std::string& chan) {
 	return _fmt(serverName, "331", nick) +  chan + " :No topic is set";
+}
+
+std::string Reply::channelModeIs(const std::string& serverName, const std::string& nick, const std::string& chan, const std::string& modes, const std::string& args) {
+	return _fmt(serverName, "324", nick) + chan + " " + modes + (args.empty() ? "" : " " + args);
 }
 
 std::string Reply::rplInviting(const std::string& serverName, const std::string& nick, const std::string& target, const std::string& chan) {
