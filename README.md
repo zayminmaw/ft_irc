@@ -22,12 +22,12 @@ Supported features include:
 
 # Instructions
 
-### Requirements
+Requirements
 
 - A C++98-compatible compiler (`c++` / `clang++` / `g++`)
 - POSIX environment (tested on macOS and Linux)
 
-### Compilation
+Compilation
 
 ```sh
 make           # builds ./ircserv
@@ -36,7 +36,7 @@ make fclean    # removes object files and the binary
 make re        # fclean + all
 ```
 
-### Running the server
+Running the server
 
 ```sh
 ./ircserv <port> <password>
@@ -51,7 +51,7 @@ Example:
 ./ircserv 6667 testpass
 ```
 
-### Connecting with `nc`
+Connecting with `nc`
 
 ```sh
 nc 127.0.0.1 6667
@@ -67,7 +67,7 @@ JOIN #chat
 PRIVMSG #chat :hello world
 ```
 
-### Connecting with an IRC client
+Connecting with an IRC client
 
 Point any IRC client at `127.0.0.1`, port `6667`, server password `testpass`. The server identifies itself as `ircserv`.
 
@@ -75,7 +75,7 @@ Point any IRC client at `127.0.0.1`, port `6667`, server password `testpass`. Th
 
 All examples below assume the server is running on `127.0.0.1:6667` with password `testpass`, and that you are already connected via `nc 127.0.0.1 6667`.
 
-### Registration
+Registration
 
 Every client must register before sending any other command.
 
@@ -94,19 +94,21 @@ On success the server replies with the welcome burst:
 :ircserv 004 alice ircserv 1.0 o itkol
 ```
 
-### PING / PONG
+PING / PONG
 
 Used by clients to keep the connection alive.
 
 ```
 PING :hello
 ```
+
 Reply:
+
 ```
 :ircserv PONG ircserv :hello
 ```
 
-### JOIN — enter a channel
+JOIN — enter a channel
 
 ```
 JOIN #chat
@@ -115,83 +117,92 @@ JOIN #secret mypass        # join a +k channel using its key
 
 The first user to join a channel automatically becomes its operator (`@`).
 
-### PART — leave a channel
+PART — leave a channel
 
 ```
 PART #chat
 PART #chat :see you later
 ```
 
-### PRIVMSG — send a message
+PRIVMSG — send a message
 
 To a channel:
+
 ```
 PRIVMSG #chat :hello everyone
 ```
+
 To a user:
+
 ```
 PRIVMSG bob :hi bob
 ```
 
-### TOPIC — view or set a channel topic
+TOPIC — view or set a channel topic
 
 ```
 TOPIC #chat                       # query current topic
 TOPIC #chat :Welcome to #chat     # set topic (op-only if +t is set)
 ```
 
-### NAMES — list members of a channel
+NAMES — list members of a channel
 
 ```
 NAMES #chat
 ```
+
 Reply:
+
 ```
 :ircserv 353 alice = #chat :@alice bob
 :ircserv 366 alice #chat :End of /NAMES list
 ```
 
-### KICK — remove a user from a channel (operator-only)
+KICK — remove a user from a channel (operator-only)
 
 ```
 KICK #chat bob
 KICK #chat bob :stop spamming
 ```
 
-### INVITE — invite a user to a channel (operator-only when channel is +i)
+INVITE — invite a user to a channel (operator-only when channel is +i)
 
 ```
 INVITE bob #chat
 ```
 
-### MODE — view or change channel modes (operator-only to change)
+MODE — view or change channel modes (operator-only to change)
 
 Query current modes:
+
 ```
 MODE #chat
 ```
+
 Reply:
+
 ```
 :ircserv 324 alice #chat +itk secret
 ```
 
 Set / unset modes:
 
-| Mode | Set example                  | Unset example          | Effect                                |
-|------|------------------------------|------------------------|---------------------------------------|
-| `i`  | `MODE #chat +i`              | `MODE #chat -i`        | Invite-only channel                   |
-| `t`  | `MODE #chat +t`              | `MODE #chat -t`        | Only operators may change the topic   |
-| `k`  | `MODE #chat +k secret`       | `MODE #chat -k`        | Set/remove a channel key (password)   |
-| `l`  | `MODE #chat +l 10`           | `MODE #chat -l`        | Set/remove a user-count limit         |
-| `o`  | `MODE #chat +o bob`          | `MODE #chat -o bob`    | Grant/revoke operator status          |
+| Mode | Set example            | Unset example       | Effect                              |
+| ---- | ---------------------- | ------------------- | ----------------------------------- |
+| `i`  | `MODE #chat +i`        | `MODE #chat -i`     | Invite-only channel                 |
+| `t`  | `MODE #chat +t`        | `MODE #chat -t`     | Only operators may change the topic |
+| `k`  | `MODE #chat +k secret` | `MODE #chat -k`     | Set/remove a channel key (password) |
+| `l`  | `MODE #chat +l 10`     | `MODE #chat -l`     | Set/remove a user-count limit       |
+| `o`  | `MODE #chat +o bob`    | `MODE #chat -o bob` | Grant/revoke operator status        |
 
 Combined modes also work:
+
 ```
 MODE #chat +it
 MODE #chat -i-t
 ```
 
-### QUIT — disconnect from the server
+QUIT — disconnect from the server
 
 ```
 QUIT :gotta go
@@ -201,7 +212,7 @@ The server broadcasts `:alice!alice@127.0.0.1 QUIT :Quit: gotta go` to every cha
 
 # Resources
 
-### Reference material
+Reference material
 
 - [RFC 1459 — Internet Relay Chat Protocol](https://datatracker.ietf.org/doc/html/rfc1459) — the canonical IRC specification; the source of truth for command syntax and numeric replies.
 - [RFC 2812 — IRC Client Protocol](https://datatracker.ietf.org/doc/html/rfc2812) — clarifies a few behaviors left ambiguous in 1459.
@@ -209,7 +220,7 @@ The server broadcasts `:alice!alice@127.0.0.1 QUIT :Quit: gotta go` to every cha
 - [Small IRC Server (ft_irc 42 Network) — A. Fatir](https://medium.com/@afatir.ahmedfatir/small-irc-server-ft-irc-42-network-7cee848de6f9) — overview article useful for project orientation.
 - `man 2 poll`, `man 2 socket`, `man 2 accept`, `man 2 send`, `man 2 recv` — POSIX socket and multiplexing primitives.
 
-### Use of AI
+Use of AI
 
 AI assistance was used for two purposes:
 
