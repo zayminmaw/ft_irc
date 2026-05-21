@@ -328,6 +328,14 @@ void Server::run()
 	}
 	_clients.clear();
 
+	// On Ctrl+C we skip disconnectClient, so removeChannelIfEmpty never runs
+	// and every Channel left in _channels is leaked unless we free it here.
+	for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+	{
+		delete it->second;
+	}
+	_channels.clear();
+
 	if (_serverFd >= 0)
 	{
 		close(_serverFd);
