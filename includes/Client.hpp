@@ -80,6 +80,10 @@ public:
 
 	bool hasPendingOutbound() const;
 
+	// True if outbound buffer has exceeded the 64KB SendQ cap. Server should
+	// disconnect with "SendQ exceeded" when this returns true.
+	bool isOutboundOverflow() const;
+
 	// ---- channel membership ---------------------------------------------
 	void joinChannel(Channel *ch);
 	void leaveChannel(Channel *ch);

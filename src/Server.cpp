@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/14 21:10:43 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/21 17:06:53 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -187,7 +187,7 @@ void Server::run()
 	// init the poll list with master server socket at index 0
 	struct pollfd server_pfd;
 	server_pfd.fd = _serverFd;
-	server_pfd.events = POLL_IN;
+	server_pfd.events = POLLIN;
 	server_pfd.revents = 0;
 	_pollFds.push_back(server_pfd);
 
@@ -281,19 +281,27 @@ void Server::run()
 					scheduleDisconnect(client, "Fatal send error");
 				}
 			}
-			// TIMEOUT REAPER
-			time_t currentTime = time(NULL);
-			for (size_t i = 1; i < _pollFds.size(); ++i)
-			{
-				int fd = _pollFds[i].fd;
-				Client *client = _clients[fd];
+		}
 
-				// not registered and 30 seconds have passed
-				if (!client->isRegistered() && (currentTime - client->getConnectionTime() > 60))
-				{
-					scheduleDisconnect(client, "Registration timeout");
-				}
-			}
+		// Registration timeout reaper: any unregistered client that has been
+		// connected longer than the grace window gets kicked. Runs once per
+		// poll cycle, not once per fd.
+		time_t now = time(NULL);
+		for (size_t i = 1; i < _pollFds.size(); ++i)
+		{
+			Client *client = _clients[_pollFds[i].fd];
+			if (client && !client->isRegistered() && now - client->getConnectionTime() > 60)
+				scheduleDisconnect(client, "Registration timeout");
+		}
+
+		// SendQ overflow sweep: any client whose outbound buffer has crossed
+		// the 64KB cap gets booted. Sticky cap means once flagged they stay
+		// flagged until disconnectClient runs.
+		for (size_t i = 1; i < _pollFds.size(); ++i)
+		{
+			Client *client = _clients[_pollFds[i].fd];
+			if (client && client->isOutboundOverflow())
+				scheduleDisconnect(client, "SendQ exceeded");
 		}
 
 		// Execute disconnections
@@ -361,7 +369,7 @@ void Server::acceptNewClient()
 	// add client to the poll tracking list
 	struct pollfd pfd;
 	pfd.fd = client_fd;
-	pfd.events = POLL_IN;
+	pfd.events = POLLIN;
 	pfd.revents = 0;
 	_pollFds.push_back(pfd);
 
@@ -374,6 +382,23 @@ void Server::disconnectClient(Client *client, const std::string &reason, bool dr
 	int fd = client->getFd();
 
 	std::cout << "[Server] Disconnecting FD " << fd << " - Reason: " << reason << std::endl;
+
+	// Broadcast QUIT to channel members and drop this client from every channel
+	// before deleting it, so no Channel ends up holding a dangling Client*.
+	std::vector<Channel *> joined = client->getChannels();
+	std::string quitLine = Reply::quitMsg(client->getPrefix(), reason);
+	for (size_t i = 0; i < joined.size(); ++i)
+	{
+		Channel *ch = joined[i];
+		ch->broadcast(quitLine, client);
+		ch->removeMember(client);
+		removeChannelIfEmpty(ch->getName());
+	}
+	
+
+	// Best-effort drain of any queued replies (e.g. 464 ERR_PASSWDMISMATCH)
+	// so the client gets them before we tear the socket down.
+	client->flushOutbound();
 
 	if (!droppedByPeer)
 	{
@@ -395,8 +420,6 @@ void Server::disconnectClient(Client *client, const std::string &reason, bool dr
 
 	close(fd);
 	delete client;
-
-	// TODO: call Channel-removeMember()
 }
 
 void Server::scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer)

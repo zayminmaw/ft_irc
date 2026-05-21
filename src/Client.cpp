@@ -130,10 +130,12 @@ bool Client::extractLine(std::string &out)
 		return false;
 	}
 
-	// extract the command (exculde \r\n) into out-parameter
-	out = _inBuffer.substr(0, pos);
+	// RFC 1459 §2.3: a message is at most 512 bytes including CRLF,
+	// so the body cannot exceed 510 bytes. Truncate rather than reject.
+	size_t take = pos > 510 ? 510 : pos;
+	out = _inBuffer.substr(0, take);
 
-	// erase the command and 2 bytes for \r\n from the front
+	// still consume the full line + CRLF from the buffer
 	_inBuffer.erase(0, pos + 2);
 
 	return true;
@@ -150,15 +152,23 @@ bool Client::isInboundOverflow() const
 // OUTBOUND BUFFER
 void Client::queueOutbound(const std::string &msg)
 {
-	_outBuffer += msg;
+	// SendQ cap: once the buffer crosses 64KB the client is doomed; drop new
+	// bytes so the cap stays sticky and the server can spot it next loop.
+	if (_outBuffer.length() >= 65536)
+		return;
 
-	// check if the message already ends with \r\n
-	// if not, append it sefely
-	size_t len = _outBuffer.length();
-	if (len < 2 || _outBuffer.substr(len - 2) != "\r\n")
-	{
-		_outBuffer += "\r\n";
-	}
+	// strip any trailing CRLF so we can measure / truncate the body alone
+	std::string body = msg;
+	if (body.length() >= 2 && body.substr(body.length() - 2) == "\r\n")
+		body.erase(body.length() - 2);
+
+	// RFC 1459 §2.3: a message line is at most 512 bytes including CRLF.
+	// Truncate the body to 510 so the wire line never exceeds the limit.
+	if (body.length() > 510)
+		body.erase(510);
+
+	_outBuffer += body;
+	_outBuffer += "\r\n";
 }
 bool Client::flushOutbound()
 {
@@ -195,6 +205,11 @@ bool Client::flushOutbound()
 bool Client::hasPendingOutbound() const
 {
 	return !_outBuffer.empty();
+}
+
+bool Client::isOutboundOverflow() const
+{
+	return _outBuffer.length() > 65536;
 }
 
 void Client::log() const

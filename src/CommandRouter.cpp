@@ -593,27 +593,7 @@ void CommandRouter::handlePing(Client& c, const IRCMessage& m) {
 }
 
 void CommandRouter::handleQuit(Client& c, const IRCMessage& m) {
-
-	std::string reason = "Client quit";
-
-	// if message exist, use user custom quit message
-	if (!m.params.empty())
-	{
-		reason = "Quit: " + m.params[0];
-	}
-
-	// Broadcast QUIT to every channel the client is in, excluding the
-	// quitter, then remove them so the channel no longer holds a stale
-	// pointer once Server::disconnectClient deletes the Client.
-	std::vector<Channel *> chans = c.getChannels();
-	std::string quit = Reply::quitMsg(c.getPrefix(), reason);
-	for (size_t i = 0; i < chans.size(); ++i) {
-		Channel *ch = chans[i];
-		ch->broadcast(quit, &c);
-		ch->removeMember(&c);
-		_server.removeChannelIfEmpty(ch->getName());
-	}
-
-	_server.scheduleDisconnect(&c, reason, true);
- }
+	std::string reason = m.params.empty() ? "Client quit" : "Quit: " + m.params[0];
+	_server.scheduleDisconnect(&c, reason, false);
+}
 
