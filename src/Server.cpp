@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/21 17:06:53 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/25 20:24:19 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -305,17 +305,27 @@ void Server::run()
 		}
 
 		// Execute disconnections
+		std::vector<DisconnectAction> remainingQueue;
 		for (size_t i = 0; i < _disconnectQueue.size(); ++i)
 		{
-			// .first Client*, .second reason
 			int target_fd = _disconnectQueue[i].fd;
-
 			if (_clients.find(target_fd) != _clients.end())
 			{
-				disconnectClient(_clients[target_fd], _disconnectQueue[i].reason, _disconnectQueue[i].droppedByPeer);
+				Client *client = _clients[target_fd];
+
+				// gate disconnect on outbound buffer empty
+				// If it's a quit and they still have messages to send, keep waiting
+				if (!_disconnectQueue[i].droppedByPeer && client->hasPendingOutbound())
+				{
+					remainingQueue.push_back(_disconnectQueue[i]);
+					continue;
+				}
+
+				// Buffer is empty OR they abruptly dropped. Safe to destroy.
+				disconnectClient(client, _disconnectQueue[i].reason, _disconnectQueue[i].droppedByPeer);
 			}
 		}
-		_disconnectQueue.clear();
+		_disconnectQueue = remainingQueue; // Update queue with clients still waiting
 	}
 
 	// cleanup after ctrl+c
@@ -387,32 +397,20 @@ void Server::acceptNewClient()
 // I/O handlers
 void Server::disconnectClient(Client *client, const std::string &reason, bool droppedByPeer)
 {
+	(void)droppedByPeer;
 	int fd = client->getFd();
 
 	std::cout << "[Server] Disconnecting FD " << fd << " - Reason: " << reason << std::endl;
 
-	// Broadcast QUIT to channel members and drop this client from every channel
-	// before deleting it, so no Channel ends up holding a dangling Client*.
+	// announce user exit on every channels and remove the user from channel
 	std::vector<Channel *> joined = client->getChannels();
-	std::string quitLine = Reply::quitMsg(client->getPrefix(), reason);
+	std::string quitLine = Reply::quitMsg(client->getPrefix(), reason) + "\r\n";
 	for (size_t i = 0; i < joined.size(); ++i)
 	{
 		Channel *ch = joined[i];
 		ch->broadcast(quitLine, client);
 		ch->removeMember(client);
 		removeChannelIfEmpty(ch->getName());
-	}
-	
-
-	// Best-effort drain of any queued replies (e.g. 464 ERR_PASSWDMISMATCH)
-	// so the client gets them before we tear the socket down.
-	client->flushOutbound();
-
-	if (!droppedByPeer)
-	{
-
-		std::string error_msg = Reply::errorMsg("Closing Link: [" + client->getIp() + "] (" + reason + ")");
-		send(fd, error_msg.c_str(), error_msg.length(), 0);
 	}
 
 	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it)
@@ -425,12 +423,34 @@ void Server::disconnectClient(Client *client, const std::string &reason, bool dr
 	}
 
 	_clients.erase(fd);
-
 	close(fd);
 	delete client;
 }
 
+// void Server::scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer)
+// {
+// 	_disconnectQueue.push_back(DisconnectAction(c->getFd(), reason, droppedByPeer));
+// }
+
 void Server::scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer)
 {
+	// Prevent duplicate scheduling, but allow upgrading to an abrupt drop if they crash
+	for (size_t i = 0; i < _disconnectQueue.size(); ++i)
+	{
+		if (_disconnectQueue[i].fd == c->getFd())
+		{
+			if (droppedByPeer)
+				_disconnectQueue[i].droppedByPeer = true;
+			return;
+		}
+	}
+
+	if (!droppedByPeer)
+	{
+		// Queue the message to the buffer, do NOT send() it directly.
+		std::string error_msg = Reply::errorMsg("Closing Link: [" + c->getIp() + "] (" + reason + ")");
+		c->queueOutbound(error_msg + "\r\n");
+	}
+
 	_disconnectQueue.push_back(DisconnectAction(c->getFd(), reason, droppedByPeer));
 }
