@@ -540,11 +540,6 @@ void CommandRouter::handleKick(Client& c, const IRCMessage& m) {
 	ch->broadcast(Reply::kickMsg(c.getPrefix(), ch->getName(), targetNick, reason), NULL);
 	ch->removeMember(targetClient);
 	targetClient->leaveChannel(ch);
-	if (ch->getOperators().empty() && !ch->getMembers().empty()) {
-		Client* newOp = ch->getMembers()[0];
-		ch->addOperator(newOp);
-		ch->broadcast(Reply::modeMsg(_server.getName(), ch->getName(), "+o ", newOp->getNick()),NULL);
-	}
 	_server.removeChannelIfEmpty(chanName);
 }
 
