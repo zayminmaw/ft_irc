@@ -6,7 +6,7 @@
 /*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/20 14:40:10 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/05/26 20:49:26 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -218,8 +218,21 @@ void CommandRouter::handleUser(Client& c, const IRCMessage& m) {
 }
 
 void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
-    (void)m;
-    c.queueOutbound(":" + _server.getName() + " CAP * LS :");
+    if (m.params.empty())
+        return;
+    const std::string& sub = m.params[0];
+
+    // This server advertises no IRCv3 capabilities. We still answer the
+    // negotiation handshake so clients (irssi, weechat, ...) don't hang.
+    if (sub == "LS" || sub == "LIST") {
+        // Empty capability list.
+        c.queueOutbound(":" + _server.getName() + " CAP * " + sub + " :");
+    } else if (sub == "REQ") {
+        // We support nothing, so reject whatever was requested.
+        std::string requested = (m.params.size() > 1) ? m.params[1] : "";
+        c.queueOutbound(":" + _server.getName() + " CAP * NAK :" + requested);
+    }
+    // CAP END (and anything else) needs no reply; the client just proceeds.
 }
 
 void CommandRouter::handleJoin(Client& c, const IRCMessage& m) {
@@ -363,6 +376,23 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 		c.queueOutbound(Reply::errNeedMoreParams(_server.getName(), c.getNick(), m.command));
 		return;
 	}
+
+	// User-mode target (no #/& prefix). We don't implement user modes, but the
+	// reference client (irssi) sends "MODE <nick> +i" on connect, so answer it
+	// instead of falling through to the channel path and emitting 403.
+	const std::string& target = m.params[0];
+	if (target.empty() || (target[0] != '#' && target[0] != '&')) {
+		if (!_server.findClientByNick(target)) {
+			c.queueOutbound(Reply::errNoSuchNick(_server.getName(), c.getNick(), target));
+		} else if (_server.findClientByNick(target) != &c) {
+			c.queueOutbound(Reply::errUsersDontMatch(_server.getName(), c.getNick()));
+		} else {
+			// Own nick: report user modes (none tracked) so the client stays happy.
+			c.queueOutbound(Reply::umodeIs(_server.getName(), c.getNick(), "+i"));
+		}
+		return;
+	}
+
 	Channel* ch = _server.findChannel(m.params[0]);
 	if (!ch) {
 		c.queueOutbound(Reply::errNoSuchChannel(_server.getName(), c.getNick(), m.params[0]));
@@ -405,6 +435,7 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 	std::string appliedArgs = "";
 	size_t argIdx = 2;
 	char currentSign = '\0';
+	char lastSign = '\0'; // last sign written to appliedModes; emit only on change
 
 	for (size_t i = 0; i < modes.length(); ++i) {
 		char mode = modes[i];
@@ -464,7 +495,12 @@ void CommandRouter::handleMode(Client& c, const IRCMessage& m) {
 		}
 
 		if (applied) {
-			appliedModes += currentSign;
+			// Only print the +/- when the sign actually flips, so a run like
+			// "+k +l +o" collapses to "+klo" instead of "+k+l+o".
+			if (currentSign != lastSign) {
+				appliedModes += currentSign;
+				lastSign = currentSign;
+			}
 			appliedModes += mode;
 			if (!appliedArg.empty()) appliedArgs += " " + appliedArg;
 		}
@@ -507,7 +543,7 @@ void CommandRouter::handleKick(Client& c, const IRCMessage& m) {
 	if (ch->getOperators().empty() && !ch->getMembers().empty()) {
 		Client* newOp = ch->getMembers()[0];
 		ch->addOperator(newOp);
-		ch->broadcast(Reply::modeMsg(_server.getName(), ch->getName(), "+o", newOp->getNick()),NULL);
+		ch->broadcast(Reply::modeMsg(_server.getName(), ch->getName(), "+o ", newOp->getNick()),NULL);
 	}
 	_server.removeChannelIfEmpty(chanName);
 }

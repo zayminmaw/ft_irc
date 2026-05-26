@@ -270,6 +270,8 @@ void Server::run()
 					std::cout << "[FD " << fd << "] Incoming: " << line << std::endl;
 					// client->queueOutbound("Server heard: " + line);
 					_router->dispatch(*client, line);
+					if (client->isMarkedForQuit())
+						break;
 				}
 			}
 
@@ -434,6 +436,10 @@ void Server::disconnectClient(Client *client, const std::string &reason, bool dr
 
 void Server::scheduleDisconnect(Client *c, const std::string &reason, bool droppedByPeer)
 {
+	// Once doomed, stop dispatching any further lines already buffered from the
+	// same packet so we don't pile replies onto a connection we're closing.
+	c->markForQuit();
+
 	// Prevent duplicate scheduling, but allow upgrading to an abrupt drop if they crash
 	for (size_t i = 0; i < _disconnectQueue.size(); ++i)
 	{

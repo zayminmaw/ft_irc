@@ -44,6 +44,14 @@ std::string Reply::channelModeIs(const std::string& serverName, const std::strin
 	return _fmt(serverName, "324", nick) + chan + " " + modes + (args.empty() ? "" : " " + args);
 }
 
+std::string Reply::umodeIs(const std::string& serverName, const std::string& nick, const std::string& modes) {
+	return _fmt(serverName, "221", nick) + modes;
+}
+
+std::string Reply::errUsersDontMatch(const std::string& serverName, const std::string& nick) {
+	return _fmt(serverName, "502", nick) + ":Cannot change mode for other users";
+}
+
 std::string Reply::rplInviting(const std::string& serverName, const std::string& nick, const std::string& target, const std::string& chan) {
 	return _fmt(serverName, "341", nick) + target + " " + chan;
 }

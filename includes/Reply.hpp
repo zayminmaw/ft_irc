@@ -44,6 +44,9 @@ namespace Reply
 	std::string channelModeIs     (const std::string& serverName, const std::string& nick,  // 324
 	                               const std::string& chan, const std::string& modes,
 	                               const std::string& args);                                // 324
+	std::string umodeIs           (const std::string& serverName, const std::string& nick,  // 221
+	                               const std::string& modes);
+	std::string errUsersDontMatch (const std::string& serverName, const std::string& nick); // 502
 	std::string namReply          (const std::string& serverName, const std::string& nick,
 	                               const std::string& chan, const std::string& names);     // 353
 	std::string endOfNames        (const std::string& serverName, const std::string& nick,
