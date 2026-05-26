@@ -106,6 +106,7 @@ namespace Reply
 	                               const std::string& modes, const std::string& args);
 	std::string inviteMsg         (const std::string& prefix, const std::string& target,
 	                               const std::string& chan);
+	std::string nickMsg           (const std::string& prefix, const std::string& newNick);
 	std::string errorMsg(const std::string& reason);
 }
 

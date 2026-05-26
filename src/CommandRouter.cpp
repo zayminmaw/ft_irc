@@ -12,6 +12,7 @@
 
 
 #include <cstdlib>
+#include <set>
 #include "CommandRouter.hpp"
 #include "Reply.hpp"
 #include "Client.hpp"
@@ -176,7 +177,23 @@ void CommandRouter::handleNick(Client& c, const IRCMessage& m) {
 		return;
 	}
 	if (c.isRegistered()) {
+		// Capture the old prefix (nick!user@host) BEFORE the nick changes, so the
+		// announced source still reflects who they were.
+		std::string nickLine = Reply::nickMsg(c.getPrefix(), newNick);
 		c.setNick(newNick);
+
+		// Notify the client itself plus everyone sharing a channel with it.
+		// A std::set keeps each recipient unique across overlapping channels.
+		std::set<Client*> recipients;
+		recipients.insert(&c);
+		const std::vector<Channel*>& chans = c.getChannels();
+		for (size_t i = 0; i < chans.size(); ++i) {
+			const std::vector<Client*>& members = chans[i]->getMembers();
+			for (size_t j = 0; j < members.size(); ++j)
+				recipients.insert(members[j]);
+		}
+		for (std::set<Client*>::iterator it = recipients.begin(); it != recipients.end(); ++it)
+			(*it)->queueOutbound(nickLine);
 	} else {
 		c.setNick(newNick);
 		tryRegister(c);

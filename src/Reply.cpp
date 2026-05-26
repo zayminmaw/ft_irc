@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/19 21:12:04 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/26 19:39:30 by zayminmaw        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -177,6 +177,10 @@ std::string Reply::inviteMsg(const std::string& prefix, const std::string& targe
 	return ":" + prefix + " INVITE " + target + " " + chan;
 }
 
+std::string Reply::nickMsg(const std::string& prefix, const std::string& newNick) {
+	return ":" + prefix + " NICK " + newNick;
+}
+
 std::string Reply::errorMsg(const std::string& reason) {
-    return "ERROR :" + reason + "\r\n";
+    return "ERROR :" + reason;
 }
