@@ -6,7 +6,7 @@
 /*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/14 19:06:06 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/05/26 19:27:01 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
 #include <iostream>
 
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
-												_hasPass(false), _registered(false)
+												_hasPass(false), _registered(false), _overflowTriggered(false)
 {
 	_connectionTime = time(NULL);
 }
@@ -150,11 +150,12 @@ bool Client::isInboundOverflow() const
 }
 
 // OUTBOUND BUFFER
+
 void Client::queueOutbound(const std::string &msg)
 {
 	// SendQ cap: once the buffer crosses 64KB the client is doomed; drop new
 	// bytes so the cap stays sticky and the server can spot it next loop.
-	if (_outBuffer.length() >= 65536)
+	if (_overflowTriggered)
 		return;
 
 	// strip any trailing CRLF so we can measure / truncate the body alone
@@ -167,9 +168,20 @@ void Client::queueOutbound(const std::string &msg)
 	if (body.length() > 510)
 		body.erase(510);
 
+	// 3. Add to the buffer
 	_outBuffer += body;
 	_outBuffer += "\r\n";
+
+	// std::cout << "[DEBUG] FD " << _fd << " OutBuffer size: " << _outBuffer.length() << std::endl;
+
+	if (_outBuffer.length() >= 65536)
+	{
+		// std::cout << "[DEBUG] 64KB KILL SWITCH TRIPPED FOR FD " << _fd << "!" << std::endl;
+		_overflowTriggered = true;
+		_outBuffer.clear();
+	}
 }
+
 bool Client::flushOutbound()
 {
 	if (_outBuffer.empty())
@@ -209,7 +221,7 @@ bool Client::hasPendingOutbound() const
 
 bool Client::isOutboundOverflow() const
 {
-	return _outBuffer.length() > 65536;
+	return _overflowTriggered;
 }
 
 void Client::log() const
