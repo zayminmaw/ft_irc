@@ -17,7 +17,8 @@
 #include <iostream>
 
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
-												_hasPass(false), _registered(false)
+												_hasPass(false), _registered(false),
+												_markedForQuit(false)
 {
 	_connectionTime = time(NULL);
 }
@@ -92,6 +93,16 @@ void Client::markRegistered()
 	_registered = true;
 }
 
+void Client::markForQuit()
+{
+	_markedForQuit = true;
+}
+
+bool Client::isMarkedForQuit() const
+{
+	return _markedForQuit;
+}
+
 // channel management
 
 void Client::joinChannel(Channel *channel)
@@ -122,7 +133,9 @@ void Client::appendToBuffer(const char *data, size_t len)
 
 bool Client::extractLine(std::string &out)
 {
-	size_t pos = _inBuffer.find("\r\n");
+	// Delimit on '\n'. RFC 1459 mandates CRLF, but tolerate a bare LF so that
+	// clients/tools that send "\n" only (e.g. plain `nc` without -C) still work.
+	size_t pos = _inBuffer.find('\n');
 
 	// if no full line exist yet, return false to wait for more data
 	if (pos == std::string::npos)
@@ -130,13 +143,19 @@ bool Client::extractLine(std::string &out)
 		return false;
 	}
 
+	// Strip an optional trailing '\r' so "\r\n" and "\n" both yield the same body.
+	size_t end = pos;
+	if (end > 0 && _inBuffer[end - 1] == '\r')
+		--end;
+
 	// RFC 1459 §2.3: a message is at most 512 bytes including CRLF,
 	// so the body cannot exceed 510 bytes. Truncate rather than reject.
-	size_t take = pos > 510 ? 510 : pos;
-	out = _inBuffer.substr(0, take);
+	if (end > 510)
+		end = 510;
+	out = _inBuffer.substr(0, end);
 
-	// still consume the full line + CRLF from the buffer
-	_inBuffer.erase(0, pos + 2);
+	// still consume the full line up to and including the '\n'
+	_inBuffer.erase(0, pos + 1);
 
 	return true;
 }

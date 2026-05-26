@@ -57,6 +57,12 @@ public:
 	void markPass();	   // PASS accepted
 	void markRegistered(); // all three steps satisfied
 
+	// Set once the client is queued for disconnect (e.g. bad password). The
+	// poll loop stops dispatching any further lines already in its buffer so
+	// we don't emit replies to a doomed connection.
+	void markForQuit();
+	bool isMarkedForQuit() const;
+
 	// ---- inbound buffer (network layer writes; parser doesn't touch) -----
 	void appendToBuffer(const char *data, size_t len);
 
@@ -109,6 +115,7 @@ private:
 
 	bool _hasPass;
 	bool _registered;
+	bool _markedForQuit;
 
 	std::vector<Channel *> _channels;
 };
