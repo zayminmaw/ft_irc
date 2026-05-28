@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
+/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/26 21:26:33 by zmin             ###   ########.fr       */
+/*   Updated: 2026/05/28 18:56:04 by wmin-kha         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@
 #include <iostream>
 
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
-												_hasPass(false), _registered(false), _overflowTriggered(false),
-												_markedForQuit(false)
+												_hasPass(false), _registered(false), _markedForQuit(false), _overflowTriggered(false)
+
 {
 	_connectionTime = time(NULL);
 }
