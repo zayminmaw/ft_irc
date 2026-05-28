@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CommandRouter.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/26 20:49:26 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/05/28 19:34:16 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,7 +220,9 @@ void CommandRouter::handleUser(Client& c, const IRCMessage& m) {
 void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
     if (m.params.empty())
         return;
-    const std::string& sub = m.params[0];
+	std::string sub = m.params[0];
+	for (size_t i = 0; i < sub.length(); ++i)
+		sub[i] = std::toupper(static_cast<unsigned char>(sub[i]));
 
     // This server advertises no IRCv3 capabilities. We still answer the
     // negotiation handshake so clients (irssi, weechat, ...) don't hang.
