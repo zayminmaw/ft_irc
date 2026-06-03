@@ -13,7 +13,6 @@
 #include "Client.hpp"
 #include "algorithm"
 #include <sys/socket.h> // For send()
-#include <cerrno>		// For errno EAGAIN, EWOULDBLOCK
 #include <iostream>
 
 Client::Client(int fd, const std::string &ip) : _fd(fd), _ip(ip),
@@ -216,20 +215,10 @@ bool Client::flushOutbound()
 		_outBuffer.erase(0, bytes_send);
 		return true;
 	}
-	else if (bytes_send == -1)
-	{
-		// sice socket is O_NONBLOCk, send() returning -1 isn't always a crash
-		// EWOULDBLOC or EAGAIN means Kernel's network buffer full right now
-		if (errno == EWOULDBLOCK || errno == EAGAIN)
-		{
-			return true; // not fatal error, try again with next POLLOUT
-		}
-		//  if it's other error
-		// like EPIPE from a disconnected user
-		// its' fatal
-		return false;
-	}
-	// bytes_send == 0 means the connection was closed by peer
+	// We only reach here when poll() already flagged this fd as writable
+	// (POLLOUT), so a non-positive return means the peer is gone or errored.
+	// The subject forbids inspecting errno after send()/recv(), so we treat
+	// any failure as fatal and let the poll loop disconnect this client.
 	return false;
 }
 

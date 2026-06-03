@@ -218,8 +218,8 @@ void CommandRouter::handleUser(Client& c, const IRCMessage& m) {
 }
 
 void CommandRouter::handleCap(Client& c, const IRCMessage& m) {
-    if (m.params.empty())
-        return;
+	if (m.params.empty())
+		return;
 	std::string sub = m.params[0];
 	for (size_t i = 0; i < sub.length(); ++i)
 		sub[i] = std::toupper(static_cast<unsigned char>(sub[i]));
