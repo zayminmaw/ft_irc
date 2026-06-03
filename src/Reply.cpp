@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Reply.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zayminmaw <zayminmaw@student.42.fr>        +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/26 19:39:30 by zayminmaw        ###   ########.fr       */
+/*   Updated: 2026/06/03 18:14:05 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ std::string Reply::yourHost(const std::string& serverName, const std::string& ni
 }
 
 std::string Reply::created(const std::string& serverName, const std::string& nick) {
-	return _fmt(serverName, "003", nick) + ":This server was created " + "May 2026";
+	return _fmt(serverName, "003", nick) + ":This server was created " + "June 2026";
 }
 
 std::string Reply::myInfo(const std::string& serverName, const std::string& nick) {

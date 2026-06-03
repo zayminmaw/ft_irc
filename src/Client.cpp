@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: wmin-kha <wmin-kha@student.42bangkok.co    +#+  +:+       +#+        */
+/*   By: zmin <zmin@student.42bangkok.com>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/07 12:00:00 by zmin              #+#    #+#             */
-/*   Updated: 2026/05/28 18:56:04 by wmin-kha         ###   ########.fr       */
+/*   Updated: 2026/06/03 18:13:55 by zmin             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -215,8 +215,6 @@ bool Client::flushOutbound()
 		_outBuffer.erase(0, bytes_send);
 		return true;
 	}
-	// We only reach here when poll() already flagged this fd as writable
-	// (POLLOUT), so a non-positive return means the peer is gone or errored.
 	// The subject forbids inspecting errno after send()/recv(), so we treat
 	// any failure as fatal and let the poll loop disconnect this client.
 	return false;
